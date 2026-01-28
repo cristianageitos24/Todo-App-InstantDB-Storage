@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cristian's Todo List</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <h1>Cristian's Todo List</h1>
+    <div class="wrapper">
+        <form>
+            <input id="todo-input" type="text" 
+            placeholder="write anything and hit enter to add" autocomplete="off">
+            <button id="add-button" type="submit">ADD</button>
+        </form>
+        <ul id="todo-list">
+            <!-- <li class="todo">
+                <input type="checkbox" id="todo-1">
+                <label class="custom-checkbox" for="todo-1">
+                    <svg fill="transparent" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
+                        <path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/>
+                    </svg>
+                </label>
+                <label for="todo-1" class="todo-text">
+                    webdev project with html, css and js
+                </label>
+                <button class="delete-button">
+                    <svg fill="var(--secondary-color)" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
+                        <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
+                    </svg>
+                </button>
+            </li>
+            <li class="todo">
+                <input type="checkbox" id="todo-2">
+                <label class="custom-checkbox" for="todo-2">
+                    <svg fill="transparent" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
+                        <path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/>
+                    </svg>
+                </label>
+                <label for="todo-2" class="todo-text">
+                    webdev project with html, css and js
+                </label>
+                <button class="delete-button">
+                    <svg fill="var(--secondary-color)" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
+                        <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
+                    </svg>
+                </button>
+            </li> -->
+        </ul>
+    </div>
+
+    <!-- Follow-up Modal -->
+    <div id="followup-modal" class="modal">
+        <div class="modal-content">
+            <h2>Add Follow-up Reminder?</h2>
+            <p>Would you like to set a calendar reminder for this todo?</p>
+            <div class="modal-buttons">
+                <button id="followup-yes" class="modal-btn primary">Yes, Add Follow-up</button>
+                <button id="followup-no" class="modal-btn secondary">No, Skip</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Follow-up Form Modal -->
+    <div id="followup-form-modal" class="modal">
+        <div class="modal-content form-modal">
+            <h2>Set Follow-up Details</h2>
+            <form id="followup-form">
+                <div class="form-group">
+                    <label for="followup-date">Date & Time:</label>
+                    <input type="datetime-local" id="followup-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="followup-notes">Additional Notes (optional):</label>
+                    <textarea id="followup-notes" rows="3" placeholder="Add any additional details..."></textarea>
+                </div>
+                <div class="form-buttons">
+                    <button type="submit" class="modal-btn primary">Create Calendar Event</button>
+                    <button type="button" id="followup-cancel" class="modal-btn secondary">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notes Modal -->
+    <div id="notes-modal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 id="notes-title" style="margin: 0; color: var(--accent-color);">Todo Notes</h2>
+                <button id="notes-close" class="modal-btn secondary" style="padding: 8px 16px; font-size: 0.9rem;">Close</button>
+            </div>
+            <div id="notes-content" style="color: var(--text-color); line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;"></div>
+        </div>
+    </div>
+</body>
+</html>
