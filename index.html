@@ -3,14 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cristian's Todo List</title>
+    <title>Todo List</title>
     <link rel="icon" type="image/png" href="../images/favicon.png">
     <link rel="stylesheet" href="style.css">
-    <script src="app.js" defer></script>
+    <!-- InstantDB SDK and App -->
+    <script type="module" src="app.js"></script>
 </head>
 <body>
-    <h1>Cristian's Todo List</h1>
-    <div class="wrapper">
+    <!-- Authentication UI (shown when not signed in) -->
+    <div id="auth-container" class="auth-container">
+        <div class="auth-box">
+            <h2>Welcome to Todo App</h2>
+            <p>Sign in to access your todos across all devices</p>
+            <form id="auth-form">
+                <div class="form-group">
+                    <input type="email" id="auth-email" placeholder="Enter your email" required autocomplete="email">
+                </div>
+                <div id="magic-code-group" class="form-group" style="display: none;">
+                    <input type="text" id="magic-code" placeholder="Enter code from email" maxlength="6" autocomplete="off">
+                    <p class="auth-hint">Check your email for the magic code</p>
+                </div>
+                <button type="submit" id="auth-submit" class="modal-btn primary">Send Magic Code</button>
+            </form>
+            <div id="auth-error" class="auth-error" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Main App UI (shown when signed in) -->
+    <div id="app-container" class="app-container" style="display: none;">
+        <!-- User Profile Section -->
+        <div class="user-profile">
+            <div class="profile-controls">
+                <input type="text" id="display-name-input" class="display-name-input" placeholder="Your Name's Todo List" maxlength="50">
+                <button id="sign-out-btn" class="sign-out-btn" title="Sign Out">Sign Out</button>
+            </div>
+        </div>
+
+        <h1 id="user-title">Loading...</h1>
+        <div class="wrapper">
         <form>
             <input id="todo-input" type="text" 
             placeholder="write anything and hit enter to add" autocomplete="off">
@@ -50,6 +80,7 @@
                 </button>
             </li> -->
         </ul>
+        </div>
     </div>
 
     <!-- Follow-up Modal -->

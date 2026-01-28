@@ -8,6 +8,7 @@
 *{
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
 }
 html{
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -56,11 +57,11 @@ body{
     opacity: 0.8;
 }
 
-#auth-form .form-group {
+.auth-form .form-group {
     margin-bottom: 20px;
 }
 
-#auth-form input {
+.auth-form input {
     width: 100%;
     box-sizing: border-box;
     padding: 12px 20px;
@@ -72,12 +73,12 @@ body{
     caret-color: var(--accent-color);
 }
 
-#auth-form input:focus {
+.auth-form input:focus {
     outline: none;
     border-color: var(--accent-color);
 }
 
-#auth-form input:disabled {
+.auth-form input:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
@@ -166,6 +167,7 @@ body{
     flex-direction: column;
     align-items: center;
 }
+
 h1{
     margin-top: 100px;
     margin-bottom: 20px;
@@ -175,6 +177,7 @@ h1{
     text-align: center;
     color: var(--accent-color);
 }
+
 .wrapper{
     width: 700px;
     max-width: 100%;
@@ -182,6 +185,7 @@ h1{
     flex-direction: column;
     gap: 10px;
 }
+
 #todo-input{
     box-sizing: border-box;
     padding: 12px 20px;
@@ -193,17 +197,19 @@ h1{
     color: var(--text-color);
     caret-color: var(--accent-color);
 }
+
 #todo-input:focus{
     outline: none;
 }
-form{
+
+.todo-form{
     position: relative;
 }
+
 #add-button{
     position: absolute;
     top: 0;
     right: 0;
-
     background-color: var(--accent-color);
     height: 100%;
     padding: 0 30px;
@@ -214,6 +220,7 @@ form{
     color: var(--background);
     cursor: pointer;
 }
+
 .todo{
     margin-bottom: 10px;
     padding: 0 16px;
@@ -232,6 +239,7 @@ form{
 .todo.overdue .todo-text{
     color: #ff6666;
 }
+
 .todo .todo-text{
     padding: 15px;
     padding-right: 0;
@@ -247,6 +255,7 @@ form{
 .todo .todo-text:hover{
     opacity: 0.8;
 }
+
 .delete-button,
 .followup-actions{
     padding: 3px;
@@ -258,17 +267,21 @@ form{
     cursor: pointer;
     margin-right: 5px;
 }
+
 .delete-button svg,
 .followup-actions svg{
     transition: 200ms ease;
 }
+
 .delete-button:hover svg{
     fill: #ff0033;
 }
+
 .followup-actions:hover svg{
     fill: #00e6b3;
     transform: scale(1.1);
 }
+
 .custom-checkbox{
     border: 2px solid var(--accent-color);
     border-radius: 50%;
@@ -281,19 +294,24 @@ form{
     transition: 200ms ease;
     cursor: pointer;
 }
+
 input[type="checkbox"]:checked ~ .custom-checkbox{
     background-color: var(--accent-color);
 }
+
 input[type="checkbox"]:checked ~ .custom-checkbox svg{
     fill: var(--primary-color);
 }
+
 input[type="checkbox"]:checked ~ .todo-text{
     text-decoration: line-through;
     color: var(--secondary-color);
 }
+
 input[type="checkbox"]{
     display: none;
 }
+
 /* Follow-up indicator */
 .todo .followup-indicator {
     margin-left: 10px;
@@ -475,4 +493,3 @@ input[type="checkbox"]{
         width: 100%;
     }
 }
-
