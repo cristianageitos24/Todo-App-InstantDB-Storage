@@ -33,16 +33,17 @@ export default function AuthForm() {
           setIsLoading(false);
           return;
         }
-        const result = await db.auth.signInWithMagicCode({ 
+        await db.auth.signInWithMagicCode({ 
           email: pendingEmail, 
           code 
         });
-        if (result.error) {
-          setError(result.error.message || 'Invalid code');
-        }
+        // If successful, the user will be signed in automatically
+        // Errors are caught by the try-catch block below
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      // InstantDB errors may have err.body?.message or err.message
+      const errorMessage = err.body?.message || err.message || 'An error occurred';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
