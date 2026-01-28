@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db, id } from '@/lib/instantdb';
+import { db, id, clearSessionTimestamp } from '@/lib/instantdb';
 
 interface UserProfileProps {
   userId: string;
@@ -60,6 +60,7 @@ export default function UserProfile({ userId }: UserProfileProps) {
 
   const handleSignOut = async () => {
     await db.auth.signOut();
+    clearSessionTimestamp();
   };
 
   return (

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { db } from '@/lib/instantdb';
+import { useState, useEffect } from 'react';
+import { db, storeSessionTimestamp } from '@/lib/instantdb';
 
 export default function AuthForm() {
   const [email, setEmail] = useState('');
@@ -37,6 +37,8 @@ export default function AuthForm() {
           email: pendingEmail, 
           code 
         });
+        // Store session timestamp for 30-day persistence
+        storeSessionTimestamp();
         // If successful, the user will be signed in automatically
         // Errors are caught by the try-catch block below
       }
