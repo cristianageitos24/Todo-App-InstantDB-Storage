@@ -56,7 +56,7 @@ export default function FollowUpModal({
     todoId ? {
       todos: {
         $: {
-          where: { id: todoId }
+          where: { id: todoId as any }
         }
       }
     } : {}

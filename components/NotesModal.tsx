@@ -13,7 +13,7 @@ export default function NotesModal({ isOpen, todoId, onClose }: NotesModalProps)
     todoId ? {
       todos: {
         $: {
-          where: { id: todoId }
+          where: { id: todoId as any }
         }
       }
     } : {}
