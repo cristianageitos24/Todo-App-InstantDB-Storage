@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { db } from '@/lib/instantdb';
 
 interface NotesModalProps {
@@ -9,17 +10,21 @@ interface NotesModalProps {
 }
 
 export default function NotesModal({ isOpen, todoId, onClose }: NotesModalProps) {
-  const { data } = db.useQuery(
-    todoId ? {
-      todos: {
-        $: {
-          where: { id: todoId as any }
-        }
+  // Query all user todos and filter by id client-side (type-safe approach)
+  const user = db.useUser();
+  const { data } = db.useQuery({
+    todos: {
+      $: {
+        where: { userId: user.id }
       }
-    } : {}
-  );
+    }
+  });
 
-  const todo = data?.todos?.[0];
+  // Find the specific todo by id
+  const todo = useMemo(() => {
+    if (!todoId || !data?.todos) return undefined;
+    return data.todos.find(t => t.id === todoId);
+  }, [todoId, data?.todos]);
 
   if (!isOpen || !todoId || !todo) return null;
 

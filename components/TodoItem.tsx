@@ -10,8 +10,8 @@ interface Todo {
     dateTime: string;
     notes?: string;
   } | null;
-  completedDate?: string | null;
-  createdDate: string;
+  completedDate?: string | number | null;
+  createdDate: string | number;
 }
 
 interface TodoItemProps {

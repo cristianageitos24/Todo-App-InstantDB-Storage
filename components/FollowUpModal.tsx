@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/instantdb';
 
 interface Todo {
@@ -52,17 +52,21 @@ export default function FollowUpModal({
   };
 
   // Get todo data for ICS generation
-  const { data } = db.useQuery(
-    todoId ? {
-      todos: {
-        $: {
-          where: { id: todoId as any }
-        }
+  // Query all user todos and filter by id client-side (type-safe approach)
+  const user = db.useUser();
+  const { data } = db.useQuery({
+    todos: {
+      $: {
+        where: { userId: user.id }
       }
-    } : {}
-  );
+    }
+  });
 
-  const todo = data?.todos?.[0];
+  // Find the specific todo by id
+  const todo = useMemo(() => {
+    if (!todoId || !data?.todos) return undefined;
+    return data.todos.find(t => t.id === todoId);
+  }, [todoId, data?.todos]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
