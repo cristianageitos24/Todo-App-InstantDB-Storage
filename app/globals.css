@@ -289,6 +289,16 @@ h1{
     color: #ff6666;
 }
 
+/* Light mode overdue styling */
+html.light-theme .todo.overdue{
+    background-color: #ffe6e6;
+    border: 2px solid #ff4444;
+}
+
+html.light-theme .todo.overdue .todo-text{
+    color: #cc0000;
+}
+
 .todo .todo-text{
     padding: 15px;
     padding-right: 0;
