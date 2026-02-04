@@ -5,6 +5,15 @@
     --accent-color: #00FFC4;
     --text-color: #F9F9F9;
 }
+
+/* Light theme variables */
+html.light-theme {
+    --background: #F9F9F9;
+    --primary-color: #FFFFFF;
+    --secondary-color: #E0E0E0;
+    --accent-color: #00B894;
+    --text-color: #1C1D20;
+}
 *{
     margin: 0;
     padding: 0;
@@ -143,6 +152,13 @@ body{
     border-color: var(--accent-color);
 }
 
+/* Display name input in modal context */
+.modal-content .display-name-input {
+    width: 100%;
+    flex-grow: 0;
+    background-color: var(--background);
+}
+
 .sign-out-btn {
     padding: 10px 20px;
     background-color: var(--secondary-color);
@@ -166,6 +182,39 @@ body{
     display: flex;
     flex-direction: column;
     align-items: center;
+    position: relative;
+}
+
+/* Settings Button */
+.settings-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    background-color: var(--primary-color);
+    border: 2px solid var(--secondary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 200ms ease;
+    z-index: 100;
+    color: var(--text-color);
+    padding: 0;
+}
+
+.settings-button:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--accent-color);
+    transform: rotate(90deg) scale(1.1);
+}
+
+.settings-button svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
 }
 
 h1{
@@ -460,6 +509,56 @@ input[type="checkbox"]{
     margin-top: 20px;
 }
 
+/* Settings Modal Styles */
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.theme-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.theme-toggle-btn {
+    position: relative;
+    width: 56px;
+    height: 32px;
+    background-color: var(--secondary-color);
+    border: 2px solid var(--secondary-color);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 200ms ease;
+    padding: 0;
+}
+
+.theme-toggle-btn:hover {
+    border-color: var(--accent-color);
+}
+
+.theme-toggle-btn.active {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.theme-toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 24px;
+    height: 24px;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    transition: all 200ms ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.theme-toggle-btn.active .theme-toggle-slider {
+    transform: translateX(24px);
+}
+
 @media(max-width: 500px){
     html{
         font-size: 12pt;
@@ -491,5 +590,15 @@ input[type="checkbox"]{
     }
     .sign-out-btn {
         width: 100%;
+    }
+    .settings-button {
+        top: 10px;
+        right: 10px;
+        width: 40px;
+        height: 40px;
+    }
+    .settings-button svg {
+        width: 20px;
+        height: 20px;
     }
 }

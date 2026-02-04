@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { db, id } from '@/lib/instantdb';
-import UserProfile from './UserProfile';
 import TodoItem from './TodoItem';
 import FollowUpModal from './FollowUpModal';
 import NotesModal from './NotesModal';
+import SettingsModal from './SettingsModal';
 
 export default function TodoApp() {
   const user = db.useUser();
@@ -16,6 +16,7 @@ export default function TodoApp() {
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
   const [migrationDone, setMigrationDone] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // Query todos for current user
   const { data, isLoading } = db.useQuery({
@@ -38,6 +39,18 @@ export default function TodoApp() {
   const todos = data?.todos || [];
   const profile = profileData?.userProfiles?.[0];
   const displayName = profile?.displayName || `${user.email?.split('@')[0] || 'My'}'s Todo List`;
+
+  // Apply theme on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    const themeToApply = savedTheme || 'dark';
+    const root = document.documentElement;
+    if (themeToApply === 'light') {
+      root.classList.add('light-theme');
+    } else {
+      root.classList.remove('light-theme');
+    }
+  }, []);
 
   // Migrate localStorage data on first load
   useEffect(() => {
@@ -138,7 +151,16 @@ export default function TodoApp() {
 
   return (
     <div className="app-container">
-      <UserProfile userId={user.id} />
+      <button 
+        className="settings-button"
+        onClick={() => setShowSettingsModal(true)}
+        title="Settings"
+        aria-label="Open settings"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor">
+          <path d="m370-80-16-128q-19-7-40-19t-37-25l-119 69-93-164 108-79q-2-9-2.5-20.5T185-360q0-9 1.5-20.5t2.5-20.5L82-480l93-164 119 69q16-13 37-25t40-18l16-128h184l16 128q19 7 40.5 18.5T669-575l119-69 93 164-108 77q1 10 2 21t1 22q0 10-1 21t-2 21l108 78-93 164-118-69q-16 13-36.5 25.5T554-208l-16 128H370Zm92-200q54 0 92-38t38-92q0-54-38-92t-92-38q-54 0-92 38t-38 92q0 54 38 92t92 38Zm0-80q-20 0-35-15t-15-35q0-20 15-35t35-15q20 0 35 15t15 35q0 20-15 35t-35 15Zm-6 240h12l12-96q32-8 59.5-22t50.5-36l88 50 40-72-80-58q6-18 9-36t3-38q0-20-3-38t-9-36l80-58-40-72-88 50q-23-24-50.5-38T480-696l-12-96h-16l-12 96q-32 8-59.5 22T330-696l-88-50-40 72 80 58q-6 18-9 36t-3 38q0 20 3 38t9 36l-80 58 40 72 88-50q23 24 50.5 38t59.5 22l12 96Zm6-280Z"/>
+        </svg>
+      </button>
       <h1>{displayName}</h1>
       <div className="wrapper">
         <form className="todo-form" onSubmit={handleAddTodo}>
@@ -208,6 +230,11 @@ export default function TodoApp() {
           setShowFollowUpPrompt(false);
           setShowFollowUpForm(true);
         }}
+      />
+
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
       />
     </div>
   );
