@@ -569,6 +569,60 @@ input[type="checkbox"]{
     transform: translateX(24px);
 }
 
+/* Accent color presets */
+.accent-color-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.accent-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.accent-preset {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--secondary-color);
+    cursor: pointer;
+    padding: 0;
+    transition: transform 150ms ease, border-color 150ms ease;
+}
+
+.accent-preset:hover {
+    transform: scale(1.1);
+    border-color: var(--text-color);
+}
+
+.accent-preset.selected {
+    border-color: var(--text-color);
+    border-width: 3px;
+    box-shadow: 0 0 0 2px var(--background);
+}
+
+.accent-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.accent-color-input {
+    width: 40px;
+    height: 32px;
+    padding: 2px;
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    background: var(--background);
+    cursor: pointer;
+}
+
+.accent-color-input:hover {
+    border-color: var(--accent-color);
+}
+
 @media(max-width: 500px){
     html{
         font-size: 12pt;

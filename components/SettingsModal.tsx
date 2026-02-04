@@ -3,9 +3,29 @@
 import { useState, useEffect } from 'react';
 import { db, id, clearSessionTimestamp } from '@/lib/instantdb';
 
+const ACCENT_PRESETS = [
+  { name: 'Teal', hex: '#00FFC4' },
+  { name: 'Blue', hex: '#3B82F6' },
+  { name: 'Purple', hex: '#8B5CF6' },
+  { name: 'Pink', hex: '#EC4899' },
+  { name: 'Red', hex: '#EF4444' },
+  { name: 'Orange', hex: '#F97316' },
+  { name: 'Green', hex: '#22C55E' },
+  { name: 'Cyan', hex: '#06B6D4' },
+] as const;
+
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+function applyAccentColor(hex: string | null) {
+  const root = document.documentElement;
+  if (hex) {
+    root.style.setProperty('--accent-color', hex);
+  } else {
+    root.style.removeProperty('--accent-color');
+  }
 }
 
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
@@ -13,6 +33,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [displayName, setDisplayName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [accentColor, setAccentColor] = useState<string | null>(null);
 
   // Query user profile
   const { data } = db.useQuery({
@@ -35,6 +56,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       applyTheme('dark');
     }
   }, []);
+
+  // Load and apply accent color from profile
+  useEffect(() => {
+    const saved = profile?.accentColor ?? null;
+    setAccentColor(saved);
+    applyAccentColor(saved);
+  }, [profile?.accentColor]);
 
   // Load display name
   useEffect(() => {
@@ -60,6 +88,27 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
     applyTheme(newTheme);
+  };
+
+  const saveAccentColor = (hex: string | null) => {
+    setAccentColor(hex);
+    applyAccentColor(hex);
+    const value = hex || undefined;
+    if (profile) {
+      db.transact(
+        db.tx.userProfiles[profile.id].update({ accentColor: value })
+      );
+    } else {
+      const profileId = id();
+      const defaultName = user.email?.split('@')[0] || 'My';
+      db.transact(
+        db.tx.userProfiles[profileId].update({
+          displayName: `${defaultName}'s Todo List`,
+          userId: user.id,
+          ...(value !== undefined && { accentColor: value }),
+        })
+      );
+    }
   };
 
   const handleDisplayNameBlur = () => {
@@ -143,6 +192,43 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 aria-label="Toggle theme"
               >
                 <span className="theme-toggle-slider"></span>
+              </button>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Accent color:</label>
+            <div className="accent-color-controls">
+              <div className="accent-presets">
+                {ACCENT_PRESETS.map(({ name, hex }) => (
+                  <button
+                    key={hex}
+                    type="button"
+                    className={`accent-preset ${(accentColor === hex || (accentColor === null && hex === '#00FFC4')) ? 'selected' : ''}`}
+                    style={{ backgroundColor: hex }}
+                    onClick={() => saveAccentColor(hex)}
+                    title={name}
+                    aria-label={`Accent color ${name}`}
+                  />
+                ))}
+              </div>
+              <div className="accent-custom-row">
+                <input
+                  type="color"
+                  className="accent-color-input"
+                  value={accentColor && ACCENT_PRESETS.every(p => p.hex !== accentColor) ? accentColor : '#00FFC4'}
+                  onChange={(e) => saveAccentColor(e.target.value)}
+                  aria-label="Custom accent color"
+                />
+                <span style={{ color: 'var(--text-color)', fontSize: '0.85rem' }}>Custom</span>
+              </div>
+              <button
+                type="button"
+                className="modal-btn secondary"
+                style={{ marginTop: '8px', padding: '8px 16px', fontSize: '0.9rem' }}
+                onClick={() => saveAccentColor(null)}
+              >
+                Default (use theme teal)
               </button>
             </div>
           </div>

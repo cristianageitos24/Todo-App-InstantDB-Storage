@@ -24,6 +24,7 @@ const _schema = i.schema({
     "userProfiles": i.entity({
       "displayName": i.string(),
       "userId": i.string(),
+      "accentColor": i.string().optional(),
     }),
   },
   links: {
