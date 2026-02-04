@@ -32,21 +32,6 @@ export default function FollowUpModal({
   const [dateTime, setDateTime] = useState('');
   const [notes, setNotes] = useState('');
 
-  useEffect(() => {
-    if (isOpen && !isPrompt && todo) {
-      if (todo.followUp) {
-        setDateTime(todo.followUp.dateTime ? formatDateTimeLocal(new Date(todo.followUp.dateTime)) : '');
-        setNotes(todo.followUp.notes ?? '');
-      } else {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(9, 0, 0, 0);
-        setDateTime(formatDateTimeLocal(tomorrow));
-        setNotes('');
-      }
-    }
-  }, [isOpen, isPrompt, todo?.id, todo?.followUp]);
-
   const formatDateTimeLocal = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -74,6 +59,21 @@ export default function FollowUpModal({
   }, [todoId, data?.todos]);
 
   const isEditMode = !isPrompt && !!todo?.followUp;
+
+  useEffect(() => {
+    if (isOpen && !isPrompt && todo) {
+      if (todo.followUp) {
+        setDateTime(todo.followUp.dateTime ? formatDateTimeLocal(new Date(todo.followUp.dateTime)) : '');
+        setNotes(todo.followUp.notes ?? '');
+      } else {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(9, 0, 0, 0);
+        setDateTime(formatDateTimeLocal(tomorrow));
+        setNotes('');
+      }
+    }
+  }, [isOpen, isPrompt, todo?.id, todo?.followUp]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
