@@ -161,6 +161,15 @@ export default function TodoApp() {
                 setSelectedTodoId(todoId);
                 setShowNotesModal(true);
               }}
+              onAddNotes={(todoId) => {
+                setSelectedTodoId(todoId);
+                setShowNotesModal(true);
+              }}
+              onEditFollowUp={(todoId) => {
+                setCurrentTodoId(todoId);
+                setShowFollowUpPrompt(false);
+                setShowFollowUpForm(true);
+              }}
             />
           ))}
         </ul>
@@ -191,6 +200,13 @@ export default function TodoApp() {
         onClose={() => {
           setShowNotesModal(false);
           setSelectedTodoId(null);
+        }}
+        onEditDateTime={(todoId) => {
+          setShowNotesModal(false);
+          setSelectedTodoId(null);
+          setCurrentTodoId(todoId);
+          setShowFollowUpPrompt(false);
+          setShowFollowUpForm(true);
         }}
       />
     </div>

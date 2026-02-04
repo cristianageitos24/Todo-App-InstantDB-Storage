@@ -7,7 +7,7 @@ interface Todo {
   text: string;
   completed: boolean;
   followUp?: {
-    dateTime: string;
+    dateTime?: string;
     notes?: string;
   } | null;
   completedDate?: string | number | null;
@@ -17,11 +17,14 @@ interface Todo {
 interface TodoItemProps {
   todo: Todo;
   onShowNotes?: (todoId: string) => void;
+  onAddNotes?: (todoId: string) => void;
+  onEditFollowUp?: (todoId: string) => void;
 }
 
-export default function TodoItem({ todo, onShowNotes }: TodoItemProps) {
+export default function TodoItem({ todo, onShowNotes, onAddNotes, onEditFollowUp }: TodoItemProps) {
+  const hasNotes = !!(todo.followUp?.notes && todo.followUp.notes.trim().length > 0);
+  const hasDate = !!(todo.followUp?.dateTime);
   const isOverdue = checkIfOverdue(todo);
-  const hasNotes = todo.followUp?.notes && todo.followUp.notes.trim().length > 0;
 
   const handleToggle = () => {
     const completed = !todo.completed;
@@ -40,8 +43,8 @@ export default function TodoItem({ todo, onShowNotes }: TodoItemProps) {
   };
 
   const handleDownloadCalendar = () => {
-    if (todo.followUp) {
-      generateICSFile(todo, todo.followUp);
+    if (todo.followUp?.dateTime) {
+      generateICSFile(todo, { dateTime: todo.followUp.dateTime, notes: todo.followUp.notes });
     }
   };
 
@@ -60,24 +63,53 @@ export default function TodoItem({ todo, onShowNotes }: TodoItemProps) {
       </label>
       <span 
         className="todo-text"
-        onClick={() => onShowNotes?.(todo.id)}
+        onClick={() => (hasNotes ? onShowNotes?.(todo.id) : onAddNotes?.(todo.id))}
       >
         {todo.text}
-        {todo.followUp && (
-          <span className="followup-indicator" title={`Follow-up: ${formatFollowUpDate(todo.followUp.dateTime)}`}>
-            📅 {formatFollowUpDate(todo.followUp.dateTime)}
+        {hasDate && (
+          <span className="followup-indicator" title={`Follow-up: ${formatFollowUpDate(todo.followUp!.dateTime!)}`}>
+            📅 {formatFollowUpDate(todo.followUp!.dateTime!)}
             {hasNotes && <span className="view-notes-text"> · view notes</span>}
           </span>
         )}
+        {hasNotes && !hasDate && (
+          <span className="followup-indicator">
+            <span className="view-notes-text"> · view notes</span>
+          </span>
+        )}
       </span>
-      {todo.followUp && (
+      {!hasNotes && (
+        <button
+          type="button"
+          className="followup-actions"
+          onClick={(e) => { e.stopPropagation(); onAddNotes?.(todo.id); }}
+          title="Add notes"
+        >
+          <svg fill="var(--accent-color)" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20">
+            <path d="M440-280H280v-160h160v-160h80v160h160v160H440v160Z"/>
+          </svg>
+        </button>
+      )}
+      {hasDate && (
         <button 
           className="followup-actions" 
-          onClick={handleDownloadCalendar}
+          onClick={(e) => { e.stopPropagation(); handleDownloadCalendar(); }}
           title="Download calendar event"
         >
           <svg fill="var(--accent-color)" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20">
             <path d="M180-80q-24 0-42-18t-18-42v-620q0-24 18-42t42-18h65v-60h65v60h340v-60h65v60h65q24 0 42 18t18 42v620q0 24-18 42t-42 18H180Zm0-60h600v-430H180v430Zm0-490h600v-130H180v130Zm0 0v-130 130Zm300 230q-17 0-28.5-11.5T440-440q0-17 11.5-28.5T480-480q17 0 28.5 11.5T520-440q0 17-11.5 28.5T480-400Zm-160 0q-17 0-28.5-11.5T280-440q0-17 11.5-28.5T320-480q17 0 28.5 11.5T360-440q0 17-11.5 28.5T320-400Zm320 0q-17 0-28.5-11.5T600-440q0-17 11.5-28.5T640-480q17 0 28.5 11.5T680-440q0 17-11.5 28.5T640-400ZM480-240q-17 0-28.5-11.5T440-280q0-17 11.5-28.5T480-320q17 0 28.5 11.5T520-280q0 17-11.5 28.5T480-240Zm-160 0q-17 0-28.5-11.5T280-280q0-17 11.5-28.5T320-320q17 0 28.5 11.5T360-280q0 17-11.5 28.5T320-240Zm320 0q-17 0-28.5-11.5T600-280q0-17 11.5-28.5T640-320q17 0 28.5 11.5T680-280q0 17-11.5 28.5T640-240Z"/>
+          </svg>
+        </button>
+      )}
+      {(hasNotes || hasDate) && (
+        <button
+          type="button"
+          className="followup-actions"
+          onClick={(e) => { e.stopPropagation(); onEditFollowUp?.(todo.id); }}
+          title="Edit follow-up / date & time"
+        >
+          <svg fill="var(--accent-color)" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20">
+            <path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-128l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/>
           </svg>
         </button>
       )}
@@ -91,7 +123,7 @@ export default function TodoItem({ todo, onShowNotes }: TodoItemProps) {
 }
 
 function checkIfOverdue(todo: Todo) {
-  if (!todo.followUp || todo.completed) {
+  if (!todo.followUp?.dateTime || todo.completed) {
     return false;
   }
   const followUpDate = new Date(todo.followUp.dateTime);

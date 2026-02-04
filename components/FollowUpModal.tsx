@@ -7,7 +7,7 @@ interface Todo {
   id: string;
   text: string;
   followUp?: {
-    dateTime: string;
+    dateTime?: string;
     notes?: string;
   } | null;
 }
@@ -32,15 +32,22 @@ export default function FollowUpModal({
   const [dateTime, setDateTime] = useState('');
   const [notes, setNotes] = useState('');
 
+  const isEditMode = !isPrompt && !!todo?.followUp;
+
   useEffect(() => {
-    if (isOpen && !isPrompt) {
-      // Set default date to tomorrow at 9 AM
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(9, 0, 0, 0);
-      setDateTime(formatDateTimeLocal(tomorrow));
+    if (isOpen && !isPrompt && todo) {
+      if (todo.followUp) {
+        setDateTime(todo.followUp.dateTime ? formatDateTimeLocal(new Date(todo.followUp.dateTime)) : '');
+        setNotes(todo.followUp.notes ?? '');
+      } else {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(9, 0, 0, 0);
+        setDateTime(formatDateTimeLocal(tomorrow));
+        setNotes('');
+      }
     }
-  }, [isOpen, isPrompt]);
+  }, [isOpen, isPrompt, todo?.id, todo?.followUp]);
 
   const formatDateTimeLocal = (date: Date) => {
     const year = date.getFullYear();
@@ -70,15 +77,15 @@ export default function FollowUpModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!dateTime || !todoId) {
+    if (!todoId) return;
+    if (!isEditMode && !dateTime) {
       alert('Please select a date and time');
       return;
     }
 
-    const followUpData = {
-      dateTime,
-      notes: notes || ''
-    };
+    const followUpData = dateTime
+      ? { dateTime, notes: notes || '' }
+      : { notes: notes || '' };
 
     db.transact(
       db.tx.todos[todoId].update({
@@ -86,11 +93,10 @@ export default function FollowUpModal({
       })
     );
 
-    // Generate and download .ics file
-    if (todo) {
-      generateICSFile(todo, followUpData);
+    if (!isEditMode && todo && dateTime) {
+      generateICSFile(todo, { dateTime, notes: notes || '' });
     }
-    
+
     onClose();
     setDateTime('');
     setNotes('');
@@ -178,16 +184,16 @@ export default function FollowUpModal({
   return (
     <div className="modal active" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content form-modal">
-        <h2>Set Follow-up Details</h2>
+        <h2>{isEditMode ? 'Edit Follow-up' : 'Set Follow-up Details'}</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="followup-date">Date & Time:</label>
+            <label htmlFor="followup-date">Date & Time{isEditMode ? ' (optional)' : ''}:</label>
             <input
               type="datetime-local"
               id="followup-date"
               value={dateTime}
               onChange={(e) => setDateTime(e.target.value)}
-              required
+              required={!isEditMode}
             />
           </div>
           <div className="form-group">
@@ -202,7 +208,7 @@ export default function FollowUpModal({
           </div>
           <div className="form-buttons">
             <button type="submit" className="modal-btn primary">
-              Create Calendar Event
+              {isEditMode ? 'Save' : 'Create Calendar Event'}
             </button>
             <button 
               type="button" 
