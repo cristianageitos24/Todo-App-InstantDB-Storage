@@ -32,8 +32,6 @@ export default function FollowUpModal({
   const [dateTime, setDateTime] = useState('');
   const [notes, setNotes] = useState('');
 
-  const isEditMode = !isPrompt && !!todo?.followUp;
-
   useEffect(() => {
     if (isOpen && !isPrompt && todo) {
       if (todo.followUp) {
@@ -74,6 +72,8 @@ export default function FollowUpModal({
     if (!todoId || !data?.todos) return undefined;
     return data.todos.find(t => t.id === todoId);
   }, [todoId, data?.todos]);
+
+  const isEditMode = !isPrompt && !!todo?.followUp;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
