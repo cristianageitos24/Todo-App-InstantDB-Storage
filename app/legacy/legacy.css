@@ -1,0 +1,668 @@
+:root{
+    --background: #101114;
+    --primary-color: #1C1D20;
+    --secondary-color: #4A4D57;
+    --accent-color: #00FFC4;
+    --text-color: #F9F9F9;
+}
+
+/* Light theme variables */
+html.light-theme {
+    --background: #F9F9F9;
+    --primary-color: #FFFFFF;
+    --secondary-color: #E0E0E0;
+    --accent-color: #00B894;
+    --text-color: #1C1D20;
+}
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+html{
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 16pt;
+  color: var(--text-color);
+}
+body{
+    min-height: 100vh;
+    padding: 10px;
+    background-color: var(--background);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Authentication Styles */
+.auth-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100%;
+    padding: 20px;
+}
+
+.auth-box {
+    background-color: var(--primary-color);
+    padding: 40px;
+    border-radius: 15px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.auth-box h2 {
+    color: var(--accent-color);
+    margin-bottom: 10px;
+    font-size: 1.8rem;
+    text-align: center;
+}
+
+.auth-box p {
+    color: var(--text-color);
+    margin-bottom: 25px;
+    text-align: center;
+    opacity: 0.8;
+}
+
+.auth-form .form-group {
+    margin-bottom: 20px;
+}
+
+.auth-form input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 20px;
+    background: none;
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    font: inherit;
+    color: var(--text-color);
+    caret-color: var(--accent-color);
+}
+
+.auth-form input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.auth-form input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.auth-hint {
+    font-size: 0.85rem;
+    color: var(--secondary-color);
+    margin-top: 8px;
+    text-align: center;
+}
+
+.auth-error {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.auth-error.error {
+    background-color: rgba(255, 68, 68, 0.1);
+    color: #ff6666;
+    border: 1px solid rgba(255, 68, 68, 0.3);
+}
+
+.auth-error.success {
+    background-color: rgba(0, 255, 196, 0.1);
+    color: var(--accent-color);
+    border: 1px solid rgba(0, 255, 196, 0.3);
+}
+
+/* User Profile Styles */
+.user-profile {
+    width: 100%;
+    max-width: 700px;
+    margin-bottom: 20px;
+    margin-top: 20px;
+}
+
+.profile-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.display-name-input {
+    flex-grow: 1;
+    padding: 10px 16px;
+    background: none;
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--text-color);
+    caret-color: var(--accent-color);
+    transition: all 200ms ease;
+}
+
+.display-name-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+/* Display name input in modal context */
+.modal-content .display-name-input {
+    width: 100%;
+    flex-grow: 0;
+    background-color: var(--background);
+}
+
+.sign-out-btn {
+    padding: 10px 20px;
+    background-color: var(--secondary-color);
+    border: none;
+    border-radius: 8px;
+    font: inherit;
+    font-weight: 600;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 200ms ease;
+    white-space: nowrap;
+}
+
+.sign-out-btn:hover {
+    background-color: #5a5d68;
+    transform: translateY(-2px);
+}
+
+.app-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+/* Settings Button */
+.settings-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    background-color: var(--primary-color);
+    border: 2px solid var(--secondary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 200ms ease;
+    z-index: 100;
+    color: var(--text-color);
+    padding: 0;
+}
+
+.settings-button:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--accent-color);
+    transform: rotate(90deg) scale(1.1);
+}
+
+.settings-button svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+
+h1{
+    margin-top: 100px;
+    margin-bottom: 20px;
+    font-size: 3rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    text-align: center;
+    color: var(--accent-color);
+}
+
+.wrapper{
+    width: 700px;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#todo-input{
+    box-sizing: border-box;
+    padding: 12px 20px;
+    width: 100%;
+    background: none;
+    border: 2px solid var(--secondary-color);
+    border-radius: 1000px;
+    font: inherit;
+    color: var(--text-color);
+    caret-color: var(--accent-color);
+}
+
+#todo-input:focus{
+    outline: none;
+}
+
+.todo-form{
+    position: relative;
+}
+
+#add-button{
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: var(--accent-color);
+    height: 100%;
+    padding: 0 30px;
+    border: none;
+    border-radius: 1000px;
+    font: inherit;
+    font-weight: 600;
+    color: var(--background);
+    cursor: pointer;
+}
+
+.todo{
+    margin-bottom: 10px;
+    padding: 0 16px;
+    background-color: var(--primary-color);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    transition: all 200ms ease;
+}
+
+.todo.overdue{
+    background-color: #2a1a1a;
+    border: 2px solid #ff4444;
+}
+
+.todo.overdue .todo-text{
+    color: #ff6666;
+}
+
+/* Light mode overdue styling */
+html.light-theme .todo.overdue{
+    background-color: #ffe6e6;
+    border: 2px solid #ff4444;
+}
+
+html.light-theme .todo.overdue .todo-text{
+    color: #cc0000;
+}
+
+.todo .todo-text{
+    padding: 15px;
+    padding-right: 0;
+    flex-grow: 1;
+    transition: 200ms ease;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.todo .todo-text:hover{
+    opacity: 0.8;
+}
+
+.delete-button,
+.followup-actions{
+    padding: 3px;
+    background: none;
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+.delete-button svg,
+.followup-actions svg{
+    transition: 200ms ease;
+}
+
+.delete-button:hover svg{
+    fill: #ff0033;
+}
+
+.followup-actions:hover svg{
+    fill: #00e6b3;
+    transform: scale(1.1);
+}
+
+.custom-checkbox{
+    border: 2px solid var(--accent-color);
+    border-radius: 50%;
+    min-height: 20px;
+    min-width: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    transition: 200ms ease;
+    cursor: pointer;
+}
+
+input[type="checkbox"]:checked ~ .custom-checkbox{
+    background-color: var(--accent-color);
+}
+
+input[type="checkbox"]:checked ~ .custom-checkbox svg{
+    fill: var(--primary-color);
+}
+
+input[type="checkbox"]:checked ~ .todo-text{
+    text-decoration: line-through;
+    color: var(--secondary-color);
+}
+
+input[type="checkbox"]{
+    display: none;
+}
+
+/* Follow-up indicator */
+.todo .followup-indicator {
+    margin-left: 10px;
+    color: var(--accent-color);
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.todo .view-notes-text {
+    margin-left: 6px;
+    color: var(--secondary-color);
+    font-size: 0.75rem;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background-color: var(--primary-color);
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    animation: modalSlideIn 0.3s ease;
+}
+
+.modal-content.form-modal {
+    max-width: 600px;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-content h2 {
+    color: var(--accent-color);
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.modal-content p {
+    margin-bottom: 20px;
+    color: var(--text-color);
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.modal-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 200ms ease;
+}
+
+.modal-btn.primary {
+    background-color: var(--accent-color);
+    color: var(--background);
+}
+
+.modal-btn.primary:hover {
+    background-color: #00e6b3;
+    transform: translateY(-2px);
+}
+
+.modal-btn.secondary {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+}
+
+.modal-btn.secondary:hover {
+    background-color: #5a5d68;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    background-color: var(--background);
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    font: inherit;
+    color: var(--text-color);
+    caret-color: var(--accent-color);
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+/* Settings Modal Styles */
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.theme-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.theme-toggle-btn {
+    position: relative;
+    width: 56px;
+    height: 32px;
+    background-color: var(--secondary-color);
+    border: 2px solid var(--secondary-color);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 200ms ease;
+    padding: 0;
+}
+
+.theme-toggle-btn:hover {
+    border-color: var(--accent-color);
+}
+
+.theme-toggle-btn.active {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.theme-toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 24px;
+    height: 24px;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    transition: all 200ms ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.theme-toggle-btn.active .theme-toggle-slider {
+    transform: translateX(24px);
+}
+
+/* Accent color presets */
+.accent-color-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.accent-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.accent-preset {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--secondary-color);
+    cursor: pointer;
+    padding: 0;
+    transition: transform 150ms ease, border-color 150ms ease;
+}
+
+.accent-preset:hover {
+    transform: scale(1.1);
+    border-color: var(--text-color);
+}
+
+.accent-preset.selected {
+    border-color: var(--text-color);
+    border-width: 3px;
+    box-shadow: 0 0 0 2px var(--background);
+}
+
+.accent-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.accent-color-input {
+    width: 40px;
+    height: 32px;
+    padding: 2px;
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    background: var(--background);
+    cursor: pointer;
+}
+
+.accent-color-input:hover {
+    border-color: var(--accent-color);
+}
+
+@media(max-width: 500px){
+    html{
+        font-size: 12pt;
+    }
+    #add-button{
+        position: unset;
+        width: 100%;
+        margin-top: 10px;
+        padding: 15px;
+        height: auto;
+    }
+    h1{
+        margin-top: 50px;
+        font-size: 15vw;
+    }
+    .modal-buttons,
+    .form-buttons {
+        flex-direction: column;
+    }
+    .modal-btn {
+        width: 100%;
+    }
+    .auth-box {
+        padding: 30px 20px;
+    }
+    .profile-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .sign-out-btn {
+        width: 100%;
+    }
+    .settings-button {
+        top: 10px;
+        right: 10px;
+        width: 40px;
+        height: 40px;
+    }
+    .settings-button svg {
+        width: 20px;
+        height: 20px;
+    }
+}
