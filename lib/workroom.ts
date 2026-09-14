@@ -1,7 +1,7 @@
 import {isWorkspace} from './organizer';
 export type Priority = 'High' | 'Medium' | 'Low';
 export type Step = { id: string; title: string; done: boolean; parentId: string | null };
-export type WorkTask = { id: string; title: string; project: string; priority: Priority; done: boolean; dueAt: string; remindAt: string; notifiedAt: string; minutes: number; body: string; steps: Step[]; noteId: string | null; createdAt: string; completedAt: string; sample?: boolean };
+export type WorkTask = { id: string; title: string; project: string; priority: Priority; done: boolean; dueAt: string; remindAt: string; notifiedAt: string; minutes: number; body: string; steps: Step[]; noteId: string | null; createdAt: string; completedAt: string; sample?: boolean; today?: string };
 export type WorkNote = { id: string; title: string; body: string; createdAt: string; sample?: boolean };
 export type Alert = { id: string; taskId: string | null; title: string; at: string; read: boolean };
 export type WorkState = { version: 2; tasks: WorkTask[]; notes: WorkNote[]; projects: string[]; alerts: Alert[]; name: string; timer: { taskId: string; remaining: number; endsAt: number | null } | null };
@@ -46,7 +46,7 @@ export function isWorkState(v:unknown):v is WorkState {
   const sample=(v:unknown)=>v===undefined||typeof v==='boolean';
   if(w.version!==2||typeof w.name!=='string'||!Array.isArray(w.projects)||!w.projects.every(nonempty)||!w.projects.includes('General')||!unique(w.projects)||!Array.isArray(w.tasks)||!Array.isArray(w.notes)||!Array.isArray(w.alerts))return false;
   if(!w.notes.every(n=>n&&nonempty(n.id)&&typeof n.title==='string'&&typeof n.body==='string'&&nonempty(n.createdAt)&&date(n.createdAt)&&sample(n.sample))||!unique(w.notes.map(n=>n.id)))return false;
-  if(!w.tasks.every(t=>t&&nonempty(t.id)&&typeof t.title==='string'&&typeof t.body==='string'&&w.projects.includes(t.project)&&['High','Medium','Low'].includes(t.priority)&&typeof t.done==='boolean'&&date(t.dueAt)&&date(t.remindAt)&&date(t.notifiedAt)&&nonempty(t.createdAt)&&date(t.createdAt)&&date(t.completedAt)&&(t.noteId===null||w.notes.some(n=>n.id===t.noteId))&&typeof t.minutes==='number'&&Number.isFinite(t.minutes)&&t.minutes>=1&&t.minutes<=600&&sample(t.sample)&&Array.isArray(t.steps)&&t.steps.every(s=>s&&nonempty(s.id)&&typeof s.title==='string'&&typeof s.done==='boolean'&&(s.parentId===null||typeof s.parentId==='string'))))return false;
+  if(!w.tasks.every(t=>t&&nonempty(t.id)&&typeof t.title==='string'&&typeof t.body==='string'&&w.projects.includes(t.project)&&['High','Medium','Low'].includes(t.priority)&&typeof t.done==='boolean'&&date(t.dueAt)&&date(t.remindAt)&&date(t.notifiedAt)&&nonempty(t.createdAt)&&date(t.createdAt)&&date(t.completedAt)&&(t.noteId===null||w.notes.some(n=>n.id===t.noteId))&&typeof t.minutes==='number'&&Number.isFinite(t.minutes)&&t.minutes>=1&&t.minutes<=600&&sample(t.sample)&&(t.today===undefined||t.today===''||(/^\d{4}-\d{2}-\d{2}$/.test(t.today)&&date(t.today)))&&Array.isArray(t.steps)&&t.steps.every(s=>s&&nonempty(s.id)&&typeof s.title==='string'&&typeof s.done==='boolean'&&(s.parentId===null||typeof s.parentId==='string'))))return false;
   for(const t of w.tasks){
     const byId=new Map(t.steps.map(s=>[s.id,s]));
     if(byId.size!==t.steps.length)return false;
@@ -67,3 +67,10 @@ export function migrateDaylight(value:unknown):WorkState {
   if(!isWorkState(next))throw new Error('Invalid migrated workspace');
   return next;
 }
+
+export const MEETING_TEMPLATE = 'Decisions\n\n\nOpen questions\n';
+export function matchingNotes(notes: WorkNote[], search: string): WorkNote[] {
+  const query = search.trim().toLowerCase();
+  return notes.filter(n => `${n.title} ${n.body}`.toLowerCase().includes(query)).sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+}
+export function isTodayTask(task: WorkTask, day: string): boolean { return !task.done && task.today === day; }

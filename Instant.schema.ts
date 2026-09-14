@@ -1,74 +1,103 @@
 // Docs: https://www.instantdb.com/docs/modeling-data
 
-import { i } from "@instantdb/core";
+import { i } from "@instantdb/react";
 
 const _schema = i.schema({
   entities: {
-    "$files": i.entity({
-      "path": i.string().unique().indexed(),
-      "url": i.string().optional(),
+    $files: i.entity({
+      path: i.string().unique().indexed(),
+      url: i.string(),
     }),
-    "$users": i.entity({
-      "email": i.string().unique().indexed().optional(),
-      "imageURL": i.string().optional(),
-      "type": i.string().optional(),
+    $streams: i.entity({
+      abortReason: i.string().optional(),
+      clientId: i.string().unique().indexed(),
+      done: i.boolean().optional(),
+      size: i.number().optional(),
     }),
-    "todos": i.entity({
-      "text": i.string(),
-      "completed": i.boolean(),
-      "followUp": i.json().optional(),
-      "completedDate": i.date().optional(),
-      "createdDate": i.date(),
-      "userId": i.string(),
+    $users: i.entity({
+      email: i.string().unique().indexed().optional(),
+      imageURL: i.string().optional(),
+      type: i.string().optional(),
     }),
-    "userProfiles": i.entity({
-      "displayName": i.string(),
-      "userId": i.string(),
-      "accentColor": i.string().optional(),
+    todos: i.entity({
+      project: i.string().optional(),
+      priority: i.string().optional(),
+      remindAt: i.string().optional(),
+      notifiedAt: i.string().optional(),
+      minutes: i.number().optional(),
+      steps: i.json().optional(),
+      noteId: i.string().optional(),
+      today: i.string().optional(),
+      completed: i.boolean(),
+      completedDate: i.date().optional(),
+      createdDate: i.date(),
+      followUp: i.any().optional(),
+      text: i.string(),
+      userId: i.string(),
+    }),
+    workroomNotes: i.entity({
+      title: i.string(), body: i.string(), createdAt: i.date(), userId: i.string().indexed(),
+    }),
+    workroomPreferences: i.entity({ projects: i.json(), userId: i.string().indexed() }),
+    userProfiles: i.entity({
+      accentColor: i.string().optional(),
+      displayName: i.string(),
+      userId: i.string(),
     }),
   },
   links: {
-    "$usersLinkedPrimaryUser": {
-      "forward": {
-        "on": "$users",
-        "has": "one",
-        "label": "linkedPrimaryUser",
-        "onDelete": "cascade"
+    $streams$files: {
+      forward: {
+        on: "$streams",
+        has: "many",
+        label: "$files",
       },
-      "reverse": {
-        "on": "$users",
-        "has": "many",
-        "label": "linkedGuestUsers"
-      }
+      reverse: {
+        on: "$files",
+        has: "one",
+        label: "$stream",
+        onDelete: "cascade",
+      },
     },
-    "todoOwner": {
-      "forward": {
-        "on": "todos",
-        "has": "one",
-        "label": "owner",
-        "to": "$users"
+    $usersLinkedPrimaryUser: {
+      forward: {
+        on: "$users",
+        has: "one",
+        label: "linkedPrimaryUser",
+        onDelete: "cascade",
       },
-      "reverse": {
-        "on": "$users",
-        "has": "many",
-        "label": "todos"
-      }
+      reverse: {
+        on: "$users",
+        has: "many",
+        label: "linkedGuestUsers",
+      },
     },
-    "profileOwner": {
-      "forward": {
-        "on": "userProfiles",
-        "has": "one",
-        "label": "owner",
-        "to": "$users"
+    todosOwner: {
+      forward: {
+        on: "todos",
+        has: "one",
+        label: "owner",
       },
-      "reverse": {
-        "on": "$users",
-        "has": "one",
-        "label": "profile"
-      }
-    }
+      reverse: {
+        on: "$users",
+        has: "many",
+        label: "todos",
+      },
+    },
+    userProfilesOwner: {
+      forward: {
+        on: "userProfiles",
+        has: "one",
+        label: "owner",
+      },
+      reverse: {
+        on: "$users",
+        has: "one",
+        label: "profile",
+      },
+    },
   },
-  rooms: {}
+  rooms: {},
 });
 
 // This helps TypeScript display nicer intellisense
@@ -76,5 +105,5 @@ type _AppSchema = typeof _schema;
 interface AppSchema extends _AppSchema {}
 const schema: AppSchema = _schema;
 
-export type { AppSchema }
+export type { AppSchema };
 export default schema;

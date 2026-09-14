@@ -37,3 +37,17 @@ The production server is left running on port 3000, bound to loopback. The Codex
 Removed the dashboard cards, sidebar, repeated prompts, task metadata rows, and default-open detail panel. The main page has Tasks/Notes navigation, quick task entry, and a meeting capture button. Extra views and filters are under View options; capture scheduling fields start collapsed. Clicking a task opens a dialog.
 
 Production build passed. Browser checks confirmed quick task entry leaves details closed, task-to-note navigation closes the task dialog, capture options start collapsed, and dialogs make the background inert. Desktop and phone screenshots were inspected; the 390px phone view had no horizontal overflow. No browser JavaScript errors were reported. Existing data model and storage keys are unchanged.
+
+## Connected notes and daily planning — September 13, 2026
+
+This section supersedes the earlier cloud-sync limitation.
+
+- Twelve unit tests pass, including legacy mapping, field-level patch isolation, idempotent linked imports, importing an account's own backup, note body search and Today rollover. TypeScript and production builds pass.
+- The approved additive schema and owner-only rules were deployed to the existing InstantDB app.
+- DOM-only checks in isolated headless browsers verified full-text note search and Today selection. No screen access, screenshots or recording were used for this revision.
+- Two independent authenticated sessions shared a temporary guest account: creating a task in one appeared in the other; Today changes flowed back; meeting notes and selected-text action conversion synced; completing an action updated the other session's note; refresh retained cloud work.
+- A second account could neither query the foreign task directly nor edit it. Attempting to change the owner from the owning account was denied.
+- Offline edits remained in the account-specific outbox, were absent from the other session while disconnected, and appeared after reconnect.
+- Quick capture while viewing Today stayed in Today. The 390×844 phone-width layout had no horizontal overflow. Email login controls rendered, and no browser JavaScript errors were reported.
+- Test-created tasks/notes and guest accounts were cleaned up. The user's account data was not used for write testing.
+- Email inbox delivery and a physical-phone login were not exercised. The local preview was refreshed on port 3000; no hosted deployment or git push was performed for this change.

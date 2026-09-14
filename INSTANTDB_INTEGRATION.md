@@ -1,131 +1,48 @@
-# InstantDB integration handoff
+# Workroom InstantDB integration
 
-Recovered from the legacy source on September 13, 2026. This document distinguishes verified repository configuration from live settings that still need verification. No database writes were performed.
+Implemented September 13, 2026 against the existing legacy app:
+`ea631659-772f-45e9-978f-3260ccb6988c`.
 
-## Existing project
+## Sign in
 
-- App ID documented in `INSTANTDB_SETUP.md`: `ea631659-772f-45e9-978f-3260ccb6988c`
-- Client configuration: `lib/instantdb.ts`
-- Environment variable: `NEXT_PUBLIC_INSTANTDB_APP_ID`
-- Existing dependencies: `@instantdb/react` and `@instantdb/core`, declared as `^0.22.112`
-- Local schema: `Instant.schema.ts`
-- Original interface: `/legacy`
-- Current interface: `app/page.tsx` → `components/Workroom.tsx`
+Open workspace settings or “Sign in to sync,” enter the same email used in the legacy app, then enter the email code. The public app ID is the default in `lib/instantdb.ts`; `NEXT_PUBLIC_INSTANTDB_APP_ID` can override it. No admin credential is bundled with the app.
 
-The app ID is public configuration, not an admin credential. The legacy client currently falls back to `__YOUR_APP_ID__` if the environment variable is missing. The new Workroom interface does not yet initialize authentication or query InstantDB.
+The redesigned app and `/legacy` use the same InstantDB authentication session. The new interface uses the SDK's session persistence without the legacy timestamp wrapper.
 
-Configuration needed by the client:
+This browser's local workspace is kept separate. After signing in, “Import this device’s work” adds non-example tasks and notes to the account. Nothing is imported automatically. The source stays in localStorage, and an account-specific identity map makes import retries idempotent. Importing a cloud backup retains matching existing IDs and never replaces cloud records. Restoring a device backup keeps a separate before-restore copy.
 
-```dotenv
-NEXT_PUBLIC_INSTANTDB_APP_ID=ea631659-772f-45e9-978f-3260ccb6988c
-```
+For phone access, use the same hosted app URL on both devices. `localhost:3000` on a phone refers to the phone. The current server is a loopback-only local preview; this implementation has not been published to a hosted URL.
 
-Use this existing project; do not provision a replacement project or replace existing tables.
+## Persistence
 
-## Email login
+- `todos`: existing title/text, completion, dates, follow-up notes, and userId are preserved. Optional fields add project, priority, reminders, minutes, checklist, source note ID and Today date.
+- `workroomNotes`: independent title, body, creation date and userId records.
+- `workroomPreferences`: project names per user.
+- `userProfiles`: existing display name and accent color remain. Name edits update the existing profile.
+- Timers and reminder history are device-local. Reminders run only while the app is open.
 
-`components/AuthForm.tsx` implements the existing passwordless email-code flow:
+Changes are translated into record/field patches. Remote query updates never cause write-back loops. Concurrent edits to different fields/records remain separate; simultaneous edits to the same field, checklist JSON, followUp JSON, or project list use last-write-wins behavior. This is not a collaborative rich-text editor.
 
-```ts
-await db.auth.sendMagicCode({ email });
-await db.auth.signInWithMagicCode({ email: pendingEmail, code });
-```
+Cloud pending writes and device-only metadata are stored under `workroom.account.<userId>.v1`. The InstantDB SDK maintains its own cache. Pending writes are overlaid on live queries and sent when authenticated/connected. Failed writes remain available for retry. Account switches remount the workspace; signed-in work is never written into the unauthenticated `workroom.workspace.v2` key. Sign-out waits for pending writes to finish.
 
-`app/legacy/page.tsx` gates the UI with `db.SignedOut` and `db.SignedIn`. Signed-in components obtain the user with `db.useUser()`. Settings call `db.auth.signOut()`.
+Offline editing while the app remains open was verified. Loading the website from scratch without a network connection is not supported by a service worker.
 
-Reuse this authentication provider and the same app ID to retain existing accounts. Users enter their own email and code in the app; no password or login code needs to be shared with the coding assistant. The repository does not establish which email the user used for their account.
+## Live schema and permissions
 
-InstantDB manages session persistence. The legacy code also maintains an `instantdb_session_timestamp` and a 30-day helper, but it refreshes that timestamp while authenticated. This helper is not an enforceable 30-day session-expiry policy and should not be carried over as one.
+The CLI login succeeded and the live schema/rules were retrieved. The previous live rules were empty (default allow).
 
-Improve the reused form with trimmed email/code values, accessible labels, `autoComplete="one-time-code"`, resend/change-email controls, and distinct success/error messages while retaining Workroom's simple styling.
+The user explicitly approved the additions and owner-only rules in `INSTANTDB_MIGRATION.md`. Both schema and rules were successfully deployed. Existing records, attributes and links were preserved, including system file/stream schema.
 
-## Existing data schema
+All task, note, profile and preference access now requires `auth.id == data.userId`; updates cannot change ownership. The rules support legacy userId fields without requiring owner links. Users can read their own user record. Client schema creation and unspecified namespace access are denied. Old rows with an absent/incorrect userId are not visible until corrected.
 
-### todos
+MCP is connected but its transaction tool currently lacks the data-write scope. Schema and permission operations use the separately authorized CLI. Test-account cleanup used the documented admin API with CLI credentials held only in process memory.
 
-| Field | Local schema type | Notes |
-| --- | --- | --- |
-| id | InstantDB entity ID | Preserve IDs during migration |
-| text | string | Task title |
-| completed | boolean | Completion state |
-| followUp | optional JSON | `{ dateTime?: string, notes?: string }`; legacy writes can use null |
-| completedDate | optional date | Legacy writes can use null |
-| createdDate | date | Creation timestamp |
-| userId | string | Authenticated owner's ID |
+## Verification
 
-### userProfiles
+See `VERIFICATION.md`. Twelve unit tests, TypeScript and production builds pass. Independent browser sessions verified bidirectional task/note sync, linked action completion, Today persistence, refresh, and offline reconnect. Direct foreign-record reads/edits and ownership transfer were checked against the deployed rules. Temporary test records and guest accounts were removed.
 
-| Field | Local schema type |
-| --- | --- |
-| displayName | string |
-| userId | string |
-| accentColor | optional string |
+Actual delivery to the user's inbox and login on a physical phone still require the user to enter their own code and use a reachable hosted URL. No user screen access or recording was used.
 
-The schema also declares `$users`, `$files`, a `todoOwner` link (`todos.owner` ↔ `$users.todos`), a `profileOwner` link (`userProfiles.owner` ↔ `$users.profile`), and linked guest/primary users.
+## Service lifecycle
 
-Legacy creation code writes `userId` but does not consistently populate `owner` links. Do not assume all existing rows have those links when designing permissions or queries.
-
-## Queries and writes to reuse
-
-`components/TodoApp.tsx` and `components/SettingsModal.tsx` filter both namespaces by the signed-in user's ID:
-
-```ts
-const user = db.useUser();
-const { data, isLoading, error } = db.useQuery({
-  todos: { $: { where: { userId: user.id } } },
-  userProfiles: { $: { where: { userId: user.id } } },
-});
-```
-
-Writes use `db.transact(db.tx.todos[id].update(...))`; deletion uses `.delete()`. Profile changes use `db.tx.userProfiles[profileId].update(...)`.
-
-Client-side filtering alone does not provide access control. The server must enforce ownership for reads, creation, updates, and deletion, and prevent changing ownership to another user.
-
-## Mapping legacy data into Workroom
-
-| Legacy | Workroom |
-| --- | --- |
-| todos.id | WorkTask.id |
-| text | title |
-| completed | done |
-| createdDate | createdAt |
-| completedDate | completedAt |
-| followUp.notes | body |
-| followUp.dateTime | dueAt (normalize to the date-input representation) |
-| userProfiles.displayName | WorkState.name |
-
-Treat legacy follow-up dates as schedule data; do not automatically deliver a new reminder for every historical follow-up. Preserve profile accentColor even if the simplified interface does not expose a color picker.
-
-Additional persistence is needed for priorities, projects, estimates, nested checklists, meeting notes and links, explicit reminders/delivery markers, timers, and alerts. Make additive schema changes after comparing the live schema with `Instant.schema.ts`. Store independently editable records separately so changing a task on one device does not overwrite unrelated work on another device.
-
-## Migration and sync requirements
-
-1. Verify the live project, schema, permission rules, and auth setup through MCP.
-2. Add authentication to Workroom while preserving the local workspace until an account is selected.
-3. Load cloud data fully before considering any import. Distinguish loading, query failure, and an empty account.
-4. Reuse or safely map existing todo IDs; make imports idempotent. Preserve the legacy records.
-5. Offer a deliberate import of this device's `workroom.workspace.v2` data into the signed-in account. Avoid mixing unrelated accounts or overwriting existing cloud work.
-6. Keep local backups until writes are confirmed. Do not reuse the legacy automatic migration that can clear local data before confirming a successful write.
-7. Subscribe to live queries, update only changed records/fields, and show pending/failed sync accurately. Remote query updates must not trigger write-back loops.
-8. Isolate account-specific cached data and clear the visible account workspace when signing out or switching accounts.
-9. Verify the same account in two independent browser sessions, plus account isolation, refresh/offline behavior, and migration retry behavior.
-10. Phone access needs a reachable hosted URL (or an explicitly configured local-network setup). `localhost:3000` on the phone points to the phone, not this computer.
-
-## MCP status and remaining verification
-
-- Registered server: `instant`
-- Endpoint: `https://mcp.instantdb.com/mcp`
-- OAuth command returned `Successfully logged in` in the earlier setup turn.
-- `codex mcp get instant` currently confirms the server is enabled.
-- This running task does not expose InstantDB tools; querying resources reports `unknown MCP server 'instant'`.
-- Therefore the live schema, deployed permissions, app ownership, and email delivery settings have NOT been retrieved or verified.
-- Do not claim cloud sync is implemented merely because MCP authorization succeeded. MCP is the development connection; the app still needs SDK authentication and persistence integration.
-
-Once MCP tools are available, inspect the existing app with `get-schema` and `get-perms` before changing it. No screen access is authorized or necessary.
-
-## Reference sources
-
-- Local: `INSTANTDB_SETUP.md`, `Instant.schema.ts`, `lib/instantdb.ts`, `app/legacy/page.tsx`, `components/AuthForm.tsx`, `components/TodoApp.tsx`, `components/SettingsModal.tsx`, `components/FollowUpModal.tsx`.
-- Official MCP setup: https://www.instantdb.com/docs/using-llms
-- Official email-code authentication: https://www.instantdb.com/docs/auth/magic-codes
-- Official permissions: https://www.instantdb.com/docs/permissions
+InstantDB's current official documentation announces service availability through August 31, 2027. The integration reuses the requested existing project, but a future backend migration should be planned before that date: https://www.instantdb.com/docs

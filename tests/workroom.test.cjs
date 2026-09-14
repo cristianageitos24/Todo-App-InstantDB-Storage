@@ -1,7 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {join}=require('node:path');
-const {captureTasks,parseCapture,toggleStep,descendantIds,dueReminders,isWorkState,seedWorkroom,migrateDaylight}=require(join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
+const {emptyTask,captureTasks,parseCapture,toggleStep,descendantIds,dueReminders,isWorkState,seedWorkroom,migrateDaylight}=require(join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
 const {initialWorkspace}=require(join(process.env.WORKROOM_TEST_BUILD,'organizer.js'));
 const options={project:'General',priority:'High',dueAt:'2026-09-14T16:00',remindAt:'2026-09-14T15:00',noteId:null};
 let id=0;const uuid=()=>String(++id);
@@ -48,4 +48,40 @@ test('Daylight migration preserves all tasks, edited examples, notes, and review
  assert.equal(migrated.notes.length,2);assert.equal(JSON.stringify(old),before);
  old.tasks=[];assert.equal(migrateDaylight(old).tasks.length,0);
  assert.throws(()=>migrateDaylight({tasks:[]}));
+});
+
+const sync=require(require('node:path').join(process.env.WORKROOM_TEST_BUILD,'workroom-sync.js'));
+test('cloud mapping keeps legacy identities and follow-up context',()=>{
+  const state=sync.decodeCloud({todos:[{id:'legacy-id',text:'Send proposal',completed:false,createdDate:'2026-09-01T10:00:00Z',userId:'owner',followUp:{notes:'Client context',dateTime:'2026-09-15T10:00:00'}}],userProfiles:[{id:'profile',displayName:'Chris'}]}, {alerts:[],timer:null});
+  assert.equal(state.tasks[0].id,'legacy-id');assert.equal(state.tasks[0].body,'Client context');assert.equal(state.name,'Chris');assert.equal(state.tasks[0].remindAt,'');
+});
+test('cloud edits update only changed fields and never write unrelated tasks',()=>{
+  const before=sync.blankWorkspace();before.tasks=[emptyTask('One','one'),emptyTask('Two','two')];
+  const after={...before,tasks:before.tasks.map(t=>t.id==='one'?{...t,today:'2026-09-13'}:t)};
+  assert.deepEqual(sync.cloudChanges(before,after,'user','profile'),[{entity:'todos',id:'one',values:{today:'2026-09-13'}}]);
+  const rows={todos:[{id:'one',text:'Remote title',today:''},{id:'two',text:'Two'}]};
+  assert.equal(sync.overlayCloud(rows,sync.cloudChanges(before,after,'user','profile')).todos[0].text,'Remote title');
+});
+test('device import retries retain note links without duplicating or replacing cloud work',()=>{
+  const device=sync.blankWorkspace();device.notes=[{id:'old-note',title:'Meeting',body:'Decision',createdAt:new Date().toISOString()}];device.tasks=[{...emptyTask('Send draft','old-task'),noteId:'old-note'}];
+  const cloud=sync.blankWorkspace();cloud.tasks=[emptyTask('Existing','cloud-task')];const ids={};let n=0;
+  const first=sync.mergeDevice(cloud,device,ids,()=>`mapped-${++n}`);
+  const second=sync.mergeDevice(first,device,ids,()=>`mapped-${++n}`);
+  assert.equal(second.tasks.length,2);assert.equal(second.notes.length,1);assert.equal(second.tasks[1].noteId,second.notes[0].id);assert.equal(n,2);
+});
+test('Today expires independently of task completion or deadline',()=>{
+  const {isTodayTask}=require(require('node:path').join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
+  const task={...emptyTask('Send draft','task'),today:'2026-09-13',dueAt:'2026-09-20T10:00'};
+  assert.equal(isTodayTask(task,'2026-09-13'),true);assert.equal(isTodayTask(task,'2026-09-14'),false);assert.equal(task.dueAt,'2026-09-20T10:00');assert.equal(task.done,false);
+});
+test('note search includes body text and sorts recent notes first',()=>{
+  const {matchingNotes}=require(require('node:path').join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
+  const notes=[{id:'one',title:'Meeting',body:'Agreed on the homepage',createdAt:'2026-09-01'},{id:'two',title:'Homepage review',body:'',createdAt:'2026-09-12'}];
+  assert.deepEqual(matchingNotes(notes,' HOMEPAGE ').map(n=>n.id),['two','one']);
+});
+
+test('importing a backup of the same account does not duplicate existing IDs',()=>{
+  const cloud=sync.blankWorkspace();cloud.tasks=[emptyTask('Existing','same-id')];
+  const merged=sync.mergeDevice(cloud,cloud,{},()=>{throw Error('Should not allocate another ID');});
+  assert.equal(merged.tasks.length,1);assert.equal(merged.tasks[0].id,'same-id');
 });

@@ -1,2 +1,2 @@
-import Workroom from '@/components/Workroom';
-export default function Home() { return <Workroom />; }
+import WorkroomApp from '@/components/WorkroomApp';
+export default function Home() { return <WorkroomApp />; }
