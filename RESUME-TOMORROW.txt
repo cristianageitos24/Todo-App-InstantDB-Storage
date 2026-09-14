@@ -1,0 +1,25 @@
+WORKROOM — COMPLETED
+Updated September 13, 2026
+
+The handoff implementation is finished. app/page.tsx now renders Workroom.
+
+Completed: meeting/batch capture, linked notes, nested checklists, priorities,
+schedules, reminders/snooze, focus timer pause/resume/stop, settings, project
+creation, backup export/validated restore, sample removal, task-delete undo,
+responsive styling, migration preserving Daylight work, and dialog accessibility.
+
+Checks: npm test (six passing tests), npx tsc --noEmit, npm run build.
+Production browser checks cover the full meeting workflow, persistence,
+reminders, timer completion, backups, notes conversion, desktop/phone layouts.
+Read VERIFICATION.md for exact evidence and limitations.
+
+Server: production build running at http://localhost:3000 on loopback.
+If the server has stopped: npm run start -- --hostname 127.0.0.1 --port 3000
+Build first after any source changes: npm run build.
+
+Data: local browser storage only, workroom.workspace.v2. No cloud sync.
+Reminders require the page to remain open; overdue reminders deliver on reopen.
+Original Daylight storage is retained. Original InstantDB app is at /legacy.
+README.md contains current usage; LEGACY.md preserves original setup instructions.
+
+Changes in this session have not been committed or pushed.

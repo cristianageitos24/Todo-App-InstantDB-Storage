@@ -1,115 +1,53 @@
-# Todo App - Next.js with InstantDB
+# Workroom
 
-A multi-user todo application built with Next.js and InstantDB, featuring real-time synchronization, authentication, and cross-device access.
+A local personal work organizer for capturing meetings and turning them into scheduled, actionable tasks.
 
-## Features
+## Run locally
 
-- 🔐 **Magic Code Authentication** - Passwordless email-based authentication
-- 👤 **Multi-User Support** - Each user has their own isolated todo storage
-- ✏️ **Customizable Display Name** - Users can personalize their todo list title
-- 📱 **Real-Time Sync** - Changes sync across all devices instantly
-- 📅 **Follow-up Reminders** - Add calendar reminders with notes
-- 💾 **Automatic Migration** - Existing localStorage todos are migrated on first login
-
-## Setup Instructions
-
-### 1. Install Dependencies
-
-```bash
+```sh
 npm install
+npm run build
+npm run start -- --hostname 127.0.0.1 --port 3000
 ```
 
-### 2. Configure InstantDB
+Open **http://localhost:3000** consistently. `127.0.0.1:3000` uses different browser storage. For development, use `npm run dev`.
 
-1. Go to [https://instantdb.com/dash](https://instantdb.com/dash) and create an account
-2. Create a new app/project
-3. Copy your App ID from the dashboard
-4. Create a `.env.local` file in the root directory (if not already created)
-5. Add your App ID:
+## Work through a meeting
 
-```env
-NEXT_PUBLIC_INSTANTDB_APP_ID=your_app_id_here
+1. Choose **Capture meeting**. Add the meeting title and notes.
+2. Enter one action per line. Indent with spaces or Tab for checklist items; indent again for nested sub-items. Shift+Tab leaves the action field.
+3. Expand **Schedule & details** to choose project, priority, due date, and an optional reminder. The preview shows how many separate tasks will be created.
+4. Save. Each task links back to the meeting note. Click a task to edit its schedule, estimate, context, or checklist in a dialog.
+5. Choose **Focus** for a task timer. Pause, resume, or stop from the timer bar. A running timer continues across reloads; a paused timer stays paused.
+
+The main screen is a simple task list; adding a task keeps you in that list. **View options** holds the extra views, filters, sorting, project creation, and batch task capture. The Inbox shows unscheduled work. Schedule groups tasks by date, Priorities groups by importance, and Completed keeps finished work. Search includes task titles, project names, context, and checklist text. Within Notes, select text and choose **Create task from selection** to create linked tasks.
+
+## Reminders and data
+
+- Reminders and focus completion appear in the notification center. Snooze a task reminder for ten minutes or mark alerts read. Desktop notification permission is optional.
+- **The page must remain open for reminders.** An overdue reminder is delivered when the page is reopened. Browser suspension can delay delivery. Closed-page push notifications are not implemented.
+- Workroom saves to this browser’s localStorage under `workroom.workspace.v2`. There is **no cloud sync** for this workspace.
+- Use workspace settings to export or restore a JSON backup. Restore validates the data and asks before replacing the workspace. Keep a backup before clearing browser data.
+- On first use, a valid Daylight workspace is migrated without deleting its original storage. Existing tasks (including edited examples), notes, intention, and review are preserved.
+- If stored data is invalid or saving fails, the app shows a warning and avoids overwriting it. Export your current work or restore a valid backup through Settings.
+- Fresh workspaces contain labeled examples; Settings can remove examples while retaining items you created.
+
+## Checks
+
+```sh
+npm test
+npx tsc --noEmit
+npm run build
 ```
 
-### 3. Configure InstantDB Schema
+Tests cover batch capture, nested checklist changes, reminder eligibility/deduplication, backup validation, and Daylight migration. See `VERIFICATION.md` for the browser verification record.
 
-In the InstantDB dashboard, go to Schema and add these tables:
+## Source
 
-**todos table:**
-- `text` (string)
-- `completed` (boolean)
-- `followUp` (json, optional)
-- `completedDate` (datetime, optional)
-- `createdDate` (datetime)
-- `userId` (string)
+- `components/Workroom.tsx`: workspace UI, capture, reminders, notes, and local persistence
+- `components/TaskDetails.tsx`: task fields and nested checklists
+- `components/WorkUI.tsx`: icons and accessible dialogs
+- `lib/workroom.ts`: data model, capture parser, checklist operations, migration, validation
+- `app/workroom.css`: responsive Workroom styling
 
-**userProfiles table:**
-- `displayName` (string)
-- `userId` (string)
-
-### 4. Enable Authentication
-
-In the InstantDB dashboard:
-1. Go to Auth settings
-2. Enable "Magic Code" authentication
-3. Configure your email settings (or use InstantDB's default)
-
-### 5. Run the Development Server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Project Structure
-
-```
-├── app/
-│   ├── layout.tsx          # Root layout
-│   ├── page.tsx            # Main page with auth routing
-│   └── globals.css         # Global styles
-├── components/
-│   ├── AuthForm.tsx        # Authentication form
-│   ├── TodoApp.tsx         # Main todo application
-│   ├── TodoItem.tsx        # Individual todo item
-│   ├── UserProfile.tsx     # User profile and display name
-│   ├── FollowUpModal.tsx   # Follow-up reminder modal
-│   └── NotesModal.tsx      # Notes viewing modal
-├── lib/
-│   └── instantdb.ts       # InstantDB configuration
-└── .env.local             # Environment variables (not in git)
-```
-
-## Usage
-
-1. **Sign In**: Enter your email and receive a magic code
-2. **Add Todos**: Type and press Enter to add a todo
-3. **Complete Todos**: Click the checkbox to mark as complete
-4. **Delete Todos**: Click the delete button
-5. **Add Follow-ups**: After adding a todo, you'll be prompted to add a calendar reminder
-6. **View Notes**: Click on a todo to view its notes
-7. **Customize Name**: Edit the display name input at the top to personalize your list
-
-## Deployment
-
-This app can be deployed to:
-- **Vercel** (recommended for Next.js)
-- **Netlify**
-- **Any platform that supports Next.js**
-
-Make sure to set the `NEXT_PUBLIC_INSTANTDB_APP_ID` environment variable in your deployment platform.
-
-## Technologies
-
-- **Next.js 14** - React framework
-- **InstantDB** - Real-time database and authentication
-- **TypeScript** - Type safety
-- **React Hooks** - State management
-
-## Migration from Vanilla JS
-
-If you had the vanilla JS version:
-- Your localStorage todos will automatically migrate to InstantDB on first login
-- The migration only happens once per user
-- After migration, localStorage is cleared
+The original InstantDB app remains at `/legacy`; its setup instructions are preserved in `LEGACY.md`. Workroom does not require InstantDB configuration.

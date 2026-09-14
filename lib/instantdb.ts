@@ -1,7 +1,7 @@
 import { init, id as generateId } from "@instantdb/react";
 import schema from "../Instant.schema";
 
-const APP_ID = process.env.NEXT_PUBLIC_INSTANTDB_APP_ID || '__YOUR_APP_ID__';
+const APP_ID = process.env.NEXT_PUBLIC_INSTANTDB_APP_ID || 'ea631659-772f-45e9-978f-3260ccb6988c';
 
 if (APP_ID === '__YOUR_APP_ID__') {
   console.warn('Please set NEXT_PUBLIC_INSTANTDB_APP_ID in .env.local');
@@ -12,7 +12,7 @@ if (APP_ID === '__YOUR_APP_ID__') {
  * @returns true if App ID is configured, false otherwise
  */
 export function isAppIdConfigured(): boolean {
-  const appId = process.env.NEXT_PUBLIC_INSTANTDB_APP_ID;
+  const appId = APP_ID;
   return appId !== undefined && appId !== null && appId !== '' && appId !== '__YOUR_APP_ID__';
 }
 
@@ -20,6 +20,7 @@ export function isAppIdConfigured(): boolean {
 export const db = init({ 
   appId: APP_ID, 
   schema,
+  devtool: false,
   // InstantDB automatically persists sessions in localStorage
   // Sessions are stored with keys prefixed with the app ID
 });

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./workroom.css";
 
 export const metadata: Metadata = {
-  title: "Todo List",
-  description: "Multi-user todo app with InstantDB",
+  title: "Workroom — Your work, under control",
+  description: "Tasks, meeting notes, schedules, and focus. Your personal work organizer.",
 };
 
 export default function RootLayout({
