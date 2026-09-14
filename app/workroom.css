@@ -12,7 +12,7 @@
 @media(max-width:680px){.wr-topbar{height:72px;padding:0 20px;gap:24px;flex-wrap:wrap}.wr-brand{font-size:21px}.simple-nav{gap:18px}.simple-nav button{font-size:13px}.topbar-tools{gap:4px}.global-search{position:absolute;top:91px;left:24px;right:24px}.global-search input{width:100%;font-size:14px}.topbar-tools .wr-icon{width:28px}.wr-content{padding:75px 22px 30px}.workspace-heading{gap:10px;margin-bottom:25px}.workspace-heading h1{font-size:29px}.heading-actions .wr-secondary{font-size:11px!important;padding:9px 10px}.work-task-row{padding:18px 0;gap:12px}.work-task-body strong{font-size:14px}.task-date{font-size:10px;max-width:77px}.task-row-end{gap:7px}.work-quick-add{padding:12px}.work-quick-add input{font-size:16px!important}.wr-footer{margin-top:30px}.notes-workspace{grid-template-columns:1fr}.wr-modal .detail-footer{padding-bottom:20px}.wr-modal .detail-scroll{padding:20px}.wr-modal .detail-fields label>span{width:86px}.wr-modal .detail-fields input,.wr-modal .detail-fields select{font-size:13px!important}}
 
 /* Quiet daily planning and note search. */
-.today-views{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-8px 0 22px}.today-views button{border:0;background:transparent;color:var(--muted,#777);padding:7px 12px;border-radius:8px;cursor:pointer}.today-views button[aria-pressed=true]{background:#eeeae3;color:#292722}.today-views small{color:#777;font-size:12px;margin-left:8px}.today-toggle{border:0;background:transparent;color:#999;font-size:19px;cursor:pointer;min-width:36px;min-height:36px;border-radius:8px}.today-toggle.chosen{color:#94692b;background:#faf0d9}.search-notes{margin:12px 0 26px}.search-notes h3{font-size:13px;color:#777}.note-search-result{display:flex;flex-direction:column;gap:6px;text-align:left;border:0;border-bottom:1px solid #eee;background:transparent;width:100%;padding:14px 0;cursor:pointer}.note-search-result span{font-size:13px;color:#777;white-space:pre-line}.cloud-account{display:flex;flex-direction:column;gap:12px}.cloud-account input{width:100%}.cloud-account p{margin:0}.sync-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.today-views{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-8px 0 22px}.today-views button{border:0;background:transparent;color:var(--muted,#777);padding:7px 12px;border-radius:8px;cursor:pointer}.today-views button[aria-pressed=true]{background:#eeeae3;color:#292722}.today-views small{color:#777;font-size:12px;margin-left:8px}.today-toggle{border:0;background:transparent;color:#8a9480;cursor:pointer;min-width:36px;min-height:36px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0}.today-toggle:hover{color:#54693b;background:#eef3e6}.today-toggle.chosen{color:#94692b;background:#faf0d9}.today-toggle.chosen svg{fill:currentColor}.search-notes{margin:12px 0 26px}.search-notes h3{font-size:13px;color:#777}.note-search-result{display:flex;flex-direction:column;gap:6px;text-align:left;border:0;border-bottom:1px solid #eee;background:transparent;width:100%;padding:14px 0;cursor:pointer}.note-search-result span{font-size:13px;color:#777;white-space:pre-line}.cloud-account{display:flex;flex-direction:column;gap:12px}.cloud-account input{width:100%}.cloud-account p{margin:0}.sync-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 
 /* Calendar tab: due dates on a month grid, linked notes as chips. */
 .workroom-calendar{margin-top:4px}
@@ -61,4 +61,25 @@
   .due-presets{padding-left:0}
   .simple-nav{gap:14px}
   .cal-agenda-task{flex-direction:column;gap:4px}
+}
+
+/* View options: match the quiet cards and secondary buttons. */
+.list-options,.capture-options{color:#68775f}
+.list-options{margin-top:28px;padding-top:6px;border-top:1px solid #e5e9df}
+.list-options summary,.capture-options summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;padding:10px 2px;font-size:13px;color:#68775f;width:auto}
+.list-options summary::-webkit-details-marker,.capture-options summary::-webkit-details-marker{display:none}
+.list-options summary::marker,.capture-options summary::marker{content:''}
+.list-options summary::after,.capture-options summary::after,.list-options[open] summary::after,.capture-options[open] summary::after{content:none}
+.list-options summary svg,.capture-options summary svg{transform:rotate(90deg);color:#8a9480;transition:transform .18s}
+.list-options[open] summary svg,.capture-options[open] summary svg{transform:rotate(-90deg)}
+.list-options summary:hover,.capture-options summary:hover{color:#344e3c}
+.work-list-toolbar{display:flex;flex-direction:column;align-items:stretch;gap:14px;margin-top:4px;padding:16px 18px;border:1px solid #dbe2d5;border-radius:8px;background:#fff}
+.list-filters{display:flex;flex-wrap:wrap;gap:14px 16px}
+.list-filters label{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1;font-size:12px;color:#5b6656}
+.list-filters select{width:100%;max-width:none;min-height:38px;font-size:13px!important;border:1px solid #dbe2d5;padding:8px 10px;background:#fafcf7;border-radius:6px;color:#344e3c}
+.list-actions{display:flex;flex-wrap:wrap;gap:8px;padding-top:14px;border-top:1px solid #eef1ea}
+.list-actions .wr-secondary{background:transparent;border-color:#d9e0d4;font-size:12px!important;font-weight:500!important;padding:9px 12px;color:#556853}
+@media(max-width:680px){
+  .list-filters label{flex:1 1 100%}
+  .list-actions .wr-secondary{flex:1;justify-content:center}
 }
