@@ -51,6 +51,39 @@
 .cal-note-chip{display:inline-flex;align-items:center;gap:6px;border:0;background:#edf3e7;color:#566943;border-radius:5px;padding:6px 8px;font-size:11px;cursor:pointer}
 .cal-unscheduled{margin-top:18px;color:#5b6656;font-size:12px}
 .due-presets{display:flex;flex-wrap:wrap;gap:10px 14px;padding:0 0 4px 110px;margin-top:-8px}
+.cal-chrome-end{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.cal-range{display:flex;gap:2px;background:#eef3e6;border-radius:8px;padding:2px}
+.cal-range button{border:0;background:transparent;color:#5b6656;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px}
+.cal-range button[aria-selected=true]{background:#fff;color:#314532;font-weight:600}
+.cal-projects{display:flex;flex-wrap:wrap;gap:8px;margin:-4px 0 14px}
+.cal-projects button{border:1px solid #e3e7e0;background:#fff;color:#5b6656;border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer}
+.cal-projects button.is-on{background:#eef3e6;color:#365239;border-color:#c5d3bb}
+.cal-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal-week-col{min-height:220px;border:1px solid #e3e7e0;border-radius:8px;background:#fff;padding:8px 6px 28px;display:flex;flex-direction:column;gap:6px;position:relative}
+.cal-week-col.is-today{outline:1px solid #506d52;outline-offset:-1px}
+.cal-week-col.is-selected{background:#f4f7ef;border-color:#c5d3bb}
+.cal-week-col.has-overdue .cal-week-head span{color:#865933}
+.cal-week-head{display:flex;align-items:baseline;gap:6px;color:#5b6652}
+.cal-week-head strong{font-size:11px;font-weight:600}
+.cal-week-head span{font-size:16px;color:#314532}
+.cal-week-head small{margin-left:auto;font-size:10px;color:#68775f}
+.cal-chip{border-left:3px solid transparent}
+.cal-chip.is-ghost{opacity:.45;background:#f4f6f0;font-style:italic}
+.cal-chip.is-dragging,.cal-inbox-row.is-dragging{opacity:.55}
+.cal-cell.is-drop,.cal-week-col.is-drop{outline:2px solid #506d52;outline-offset:-2px}
+.workroom-calendar.is-dragging{cursor:grabbing;user-select:none}
+.cal-note-count{font-size:10px;color:#647657;padding-left:4px}
+.cal-day-notes{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 12px}
+.cal-day-notes h4{width:100%;margin:0;font-size:11px;color:#5b6652;font-weight:600}
+.cal-week-notes{margin-top:18px}
+.cal-nudges{display:flex;flex-wrap:wrap;gap:10px 14px}
+.cal-inbox{margin-top:22px}
+.cal-inbox>p{font-size:12px;color:#5b6656;margin:0 0 10px}
+.cal-inbox-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e5e9df;touch-action:none}
+.cal-inbox-title{border:0;background:transparent;text-align:left;padding:0;cursor:pointer;color:#354a37;font-size:14px}
+.cal-week-col .cal-chips{flex:1}
+.cal-week-col .cal-chip{touch-action:none}
+.cal-week-col .cal-add-empty{position:absolute;right:6px;bottom:6px}
 @media(max-width:680px){
   .cal-cell{min-height:56px;padding:4px 3px}
   .cal-chip-title,.cal-note-mark{display:none}
@@ -61,10 +94,17 @@
   .due-presets{padding-left:0}
   .simple-nav{gap:14px}
   .cal-agenda-task{flex-direction:column;gap:4px}
+  .cal-week{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:8px;padding-bottom:8px}
+  .cal-week-col{flex:0 0 78%;scroll-snap-align:start;min-height:280px}
+  .cal-week-col .cal-chip-title{display:block}
+  .cal-week-col .cal-chip{background:#eef3e6;padding:6px 8px;width:100%}
+  .cal-week-col .cal-chips{flex-direction:column}
+  .cal-week-col .cal-dot{display:none}
 }
 
 /* View options: match the quiet cards and secondary buttons. */
-.list-options,.capture-options{color:#68775f}
+.note-meeting-date{display:flex;align-items:center;gap:10px;margin:8px 0 18px;font-size:12px;color:#5b6656}
+.note-meeting-date input{border:1px solid #dce4d3;border-radius:6px;padding:6px 8px;background:#fff;color:#41563a}
 .list-options{margin-top:28px;padding-top:6px;border-top:1px solid #e5e9df}
 .list-options summary,.capture-options summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;padding:10px 2px;font-size:13px;color:#68775f;width:auto}
 .list-options summary::-webkit-details-marker,.capture-options summary::-webkit-details-marker{display:none}

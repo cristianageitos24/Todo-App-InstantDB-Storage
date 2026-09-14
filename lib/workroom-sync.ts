@@ -9,13 +9,18 @@ const local = (v: unknown) => iso(v) ? toLocalDateTime(new Date(v as string)) : 
 const string = (v: unknown, fallback='') => typeof v==='string'?v:fallback;
 
 export function decodeCloud(rows: CloudRows, device: Pick<WorkState,'alerts'|'timer'>): WorkState {
-  const notes=(rows.workroomNotes||[]).map(n=>({id:n.id,title:string(n.title),body:string(n.body),createdAt:iso(n.createdAt)||new Date(0).toISOString()}));
+  const dayKey = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : '';
+  const notes=(rows.workroomNotes||[]).map(n=>{
+    const datedAt = dayKey(n.datedAt) || (iso(n.datedAt) ? iso(n.datedAt).slice(0, 10) : '');
+    return {id:n.id,title:string(n.title),body:string(n.body),createdAt:iso(n.createdAt)||new Date(0).toISOString(),...(datedAt?{datedAt}:{})};
+  });
   const tasks=(rows.todos||[]).map(row=>{
     const follow=row.followUp as {notes?:string;dateTime?:string}|null;
+    const repeat = row.repeat === 'weekly' || row.repeat === 'weekdays' || row.repeat === 'biweekly' || row.repeat === 'monthly' ? row.repeat : '';
     return {...emptyTask(string(row.text),row.id), done:row.completed===true,createdAt:iso(row.createdDate)||new Date(0).toISOString(),completedAt:iso(row.completedDate),
       body:string(follow?.notes),dueAt:local(follow?.dateTime),project:string(row.project,'General'),priority:row.priority==='High'||row.priority==='Low'?row.priority:'Medium',
       remindAt:string(row.remindAt),notifiedAt:string(row.notifiedAt),minutes:typeof row.minutes==='number'?row.minutes:25,steps:Array.isArray(row.steps)?row.steps:[],
-      noteId:notes.some(n=>n.id===row.noteId)?row.noteId as string:null,today:string(row.today)} as WorkTask;
+      noteId:notes.some(n=>n.id===row.noteId)?row.noteId as string:null,today:string(row.today),repeat,seriesId:string(row.seriesId)} as WorkTask;
   });
   const prefs=rows.workroomPreferences?.[0];
   const projects=Array.from(new Set(['General',...(Array.isArray(prefs?.projects)?prefs.projects.filter(p=>typeof p==='string'&&p.trim()):[]),...tasks.map(t=>t.project)]));
@@ -24,9 +29,9 @@ export function decodeCloud(rows: CloudRows, device: Pick<WorkState,'alerts'|'ti
   return state;
 }
 function encodeTask(t:WorkTask):Record<string,unknown> {
-  return {text:t.title,completed:t.done,createdDate:t.createdAt,completedDate:t.completedAt||null,followUp:{notes:t.body,dateTime:t.dueAt?new Date(t.dueAt).toISOString():null},project:t.project,priority:t.priority,remindAt:t.remindAt,notifiedAt:t.notifiedAt,minutes:t.minutes,steps:t.steps,noteId:t.noteId,today:t.today||''};
+  return {text:t.title,completed:t.done,createdDate:t.createdAt,completedDate:t.completedAt||null,followUp:{notes:t.body,dateTime:t.dueAt?new Date(t.dueAt).toISOString():null},project:t.project,priority:t.priority,remindAt:t.remindAt,notifiedAt:t.notifiedAt,minutes:t.minutes,steps:t.steps,noteId:t.noteId,today:t.today||'',repeat:t.repeat||'',seriesId:t.seriesId||''};
 }
-const encodeNote=(n:WorkNote):Record<string,unknown>=>({title:n.title,body:n.body,createdAt:n.createdAt});
+const encodeNote=(n:WorkNote):Record<string,unknown>=>({title:n.title,body:n.body,createdAt:n.createdAt,datedAt:n.datedAt||''});
 export function cloudChanges(before:WorkState,after:WorkState,userId:string,profileId:string):Mutation[]{
   const changes:Mutation[]=[];
   function collection<T extends {id:string}>(entity:Mutation['entity'],old:T[],next:T[],encode:(t:T)=>Record<string,unknown>){
