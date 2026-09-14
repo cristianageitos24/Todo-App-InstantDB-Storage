@@ -1,2 +1,2 @@
-import Organizer from '@/components/Organizer';
-export default function Home() { return <Organizer />; }
+import Workroom from '@/components/Workroom';
+export default function Home() { return <Workroom />; }

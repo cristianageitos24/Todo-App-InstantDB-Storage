@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./workroom.css";
 
 export const metadata: Metadata = {
-  title: "Daylight — A little more clarity",
-  description: "Your personal space to organize life, find focus, and make room for what matters.",
+  title: "Workroom — Your work, under control",
+  description: "Tasks, meeting notes, schedules, and focus. Your personal work organizer.",
 };
 
 export default function RootLayout({

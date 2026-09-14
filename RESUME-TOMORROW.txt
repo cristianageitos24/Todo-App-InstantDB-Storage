@@ -1,65 +1,25 @@
-ORGANIZATION TOOL — HANDOFF
-Saved September 12, 2026
+WORKROOM — COMPLETED
+Updated September 13, 2026
 
-USER'S ACTUAL GOAL
-A personal WORK organizer, not a lifestyle dashboard. During a meeting, quickly capture four separate tasks, keep meeting notes, add items/sub-items/checklists, set priorities, schedule tasks, start timers, and receive reminders. Make it fast, polished, and easy to resume work without losing context. Run locally at localhost:3000.
+The handoff implementation is finished. app/page.tsx now renders Workroom.
 
-REPOSITORY / ACCOUNT
-Folder: /Users/cristianageitos/Documents/ChatGPT/Organization Tool
-Remote: https://github.com/cristianageitos24/Todo-App-InstantDB-Storage.git
-Branch: main. No changes have been committed or pushed.
-Active GitHub CLI account: cristianageitos24.
-Git author/committer: Cristianageitos24 <cristianageitos24@gmail.com>.
+Completed: meeting/batch capture, linked notes, nested checklists, priorities,
+schedules, reminders/snooze, focus timer pause/resume/stop, settings, project
+creation, backup export/validated restore, sample removal, task-delete undo,
+responsive styling, migration preserving Daylight work, and dialog accessibility.
 
-FIRST REDESIGN — COMPLETED, BUT USER REQUESTED A DIFFERENT DIRECTION
-Built a warm green/cream organizer called Daylight: Today, Inbox, Upcoming, life areas, task editor, scratchpad, weekly reset, focus timer, local storage, backup export/restore.
-Files: components/Organizer.tsx, lib/organizer.ts, app/globals.css, app/page.tsx, app/layout.tsx, DAYLIGHT.md.
-Original InstantDB app preserved at app/legacy/page.tsx with legacy.css and existing components.
-Daylight passed production build and TypeScript checks. Browser checks confirmed rendering, task creation with notes, persistence after refresh, and completion moving tasks to Completed. Focus start rendered; later pause/mobile verification was interrupted and is NOT complete.
-A production server was started at port 3000 using the last Daylight build. It may still be running (last exec session 7439); check before starting another. It will still show Daylight, not the unfinished work redesign.
+Checks: npm test (six passing tests), npx tsc --noEmit, npm run build.
+Production browser checks cover the full meeting workflow, persistence,
+reminders, timer completion, backups, notes conversion, desktop/phone layouts.
+Read VERIFICATION.md for exact evidence and limitations.
 
-SECOND REDESIGN — WORK IN PROGRESS, WORKING NAME WORKROOM
-User liked the appearance but clarified the work/meeting use case. Started a more useful task-manager layout: sidebar, task workspace, persistent task detail panel, notes workspace, priorities, schedule, projects.
+Server: production build running at http://localhost:3000 on loopback.
+If the server has stopped: npm run start -- --hostname 127.0.0.1 --port 3000
+Build first after any source changes: npm run build.
 
-WRITTEN BUT NOT YET COMPILED OR VERIFIED
-1. lib/workroom.ts
-   WorkState v2 model: tasks, projects, meeting notes, alerts, persisted timer.
-   Task fields: priority, due date/time, reminder time, estimate, context, linked note, completion state.
-   Flat checklist items with parent IDs support nested sub-items.
-   Functions: parseCapture, captureTasks (one task per line; indentation becomes checklist items), descendantIds, toggleStep, dueReminders, state validation, sample work data.
-2. components/WorkUI.tsx
-   Shared SVG icons and accessible modal with focus trapping/Escape handling.
-3. components/TaskDetails.tsx
-   Editable task detail panel: title, priority, project, due date/time, reminder, estimate, context, linked meeting note, nested checklist, completion, delete, focus action.
-4. components/Workroom.tsx
-   PARTIALLY WRITTEN. Contains state, browser persistence, initial migration from Daylight, search/filter/sort, task/note actions, meeting capture handlers, reminder polling, persisted timer logic, sidebar, overview, task list, detail panel, notes editor and linked actions.
-   IMPORTANT: This file ends mid-JSX after the main area. It does NOT have closing root JSX/return/function, so current source will fail TypeScript/build until completed or temporarily excluded. It is not imported by app/page.tsx yet.
+Data: local browser storage only, workroom.workspace.v2. No cloud sync.
+Reminders require the page to remain open; overdue reminders deliver on reopen.
+Original Daylight storage is retained. Original InstantDB app is at /legacy.
+README.md contains current usage; LEGACY.md preserves original setup instructions.
 
-STILL TO DO — RESUME HERE
-1. Finish Workroom.tsx JSX:
-   - Meeting capture modal: meeting title/context, multiline action items, project/priority/due/reminder fields, parsed task/subtask preview, save meeting + tasks.
-   - New-task/batch capture modal using existing capture handlers.
-   - Reminder/notification center: alerts, mark read, open task, snooze (e.g. 10 minutes), desktop notification enable button.
-   - Focus timer bar: task name, countdown, pause/resume, stop. State/handlers partially present.
-   - Settings: name, notification permission/status, backup export/import, clear sample data safely.
-   - New project modal.
-   - Toast and task-delete undo UI.
-   - Close root JSX, return, and function.
-2. Build Workroom CSS (all wr-/workroom/task-details classes). No Workroom styling has been written. Current globals.css belongs to Daylight. Aim for a polished, readable, denser work UI with sidebar + task list + right detail panel, and responsive layouts.
-3. Wire app/page.tsx to Workroom and update metadata. Preserve original InstantDB app and any user-created browser data. Existing v1-to-v2 migration needs review/testing.
-4. Review correctness/accessibility: nested checklist behavior; title/date validation; capture indentation; completed tasks/reminders; timer after refresh; task deletion/undo; notes-to-tasks; sorting/grouping; import validation; dialog focus; mobile detail panel.
-5. Add meaningful tests for bulk capture, nested checklist operations, reminder delivery/deduplication, and backup validation. No Workroom tests exist yet.
-6. Run npx tsc --noEmit and npm run build; fix failures.
-7. Restart port 3000 with final build and verify in a real browser. npx --yes agent-browser is available and was used successfully. Re-snapshot after every UI change to avoid stale refs.
-8. Test the exact user story: capture four meeting tasks plus indented subtasks, edit schedule/priority/reminder, check nested items, use timer, verify reminders/snooze, reload and confirm persistence. Check desktop and phone layouts and browser errors.
-9. Update documentation and open localhost:3000 for user.
-
-IMPORTANT LIMITATIONS / DECISIONS
-Local/offline preview uses browser localStorage, not InstantDB cloud sync. Do not imply otherwise.
-Workroom storage key: workroom.workspace.v2. Daylight key: daylight.workspace.v1.
-localhost:3000 and 127.0.0.1:3000 have separate browser storage; consistently use localhost:3000 for user preview.
-Browser reminders require the page to remain open. Desktop notification permission is optional; in-app alerts should still work. Reliable notifications while closed require additional architecture and have not been implemented.
-No final Workroom build or verification has been completed. Do not describe draft features as tested or finished.
-
-NEXT SESSION PROMPT
-Read RESUME-TOMORROW.txt and finish the Workroom redesign. Focus on meeting capture, linked notes and tasks, nested checklists, priorities, schedules, timers, and honest local reminders. Finish and test the implementation, then run it at localhost:3000. Do not restart the lifestyle dashboard design.
+Changes in this session have not been committed or pushed.
