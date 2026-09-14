@@ -105,7 +105,17 @@
 /* View options: match the quiet cards and secondary buttons. */
 .note-meeting-date{display:flex;align-items:center;gap:10px;margin:8px 0 18px;font-size:12px;color:#5b6656}
 .note-meeting-date input{border:1px solid #dce4d3;border-radius:6px;padding:6px 8px;background:#fff;color:#41563a}
+.list-foot{order:2;margin-top:28px;padding-top:6px;border-top:1px solid #e5e9df}
+.list-toggles{display:flex;flex-wrap:wrap;align-items:flex-start;gap:4px 28px}
 .list-options{margin-top:28px;padding-top:6px;border-top:1px solid #e5e9df}
+.list-toggles .list-options{order:0;margin:0;padding:0;border:0}
+.completed-toggle{cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:10px 2px;font-size:13px;color:#68775f;background:none;border:0;order:1}
+.list-toggles>.completed-toggle:nth-of-type(2){order:2}
+.completed-toggle svg{transform:rotate(90deg);color:#8a9480;transition:transform .18s}
+.completed-toggle.is-open svg{transform:rotate(-90deg)}
+.completed-toggle:hover{color:#344e3c}
+.list-toggles .work-list-toolbar{order:3;flex:1 1 100%;width:100%}
+.completed-panel{flex:1 1 100%;width:100%;order:4;margin-top:4px}
 .list-options summary,.capture-options summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;padding:10px 2px;font-size:13px;color:#68775f;width:auto}
 .list-options summary::-webkit-details-marker,.capture-options summary::-webkit-details-marker{display:none}
 .list-options summary::marker,.capture-options summary::marker{content:''}
