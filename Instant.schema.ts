@@ -28,6 +28,8 @@ const _schema = i.schema({
       steps: i.json().optional(),
       noteId: i.string().optional(),
       today: i.string().optional(),
+      repeat: i.string().optional(),
+      seriesId: i.string().optional(),
       completed: i.boolean(),
       completedDate: i.date().optional(),
       createdDate: i.date(),
@@ -36,7 +38,7 @@ const _schema = i.schema({
       userId: i.string(),
     }),
     workroomNotes: i.entity({
-      title: i.string(), body: i.string(), createdAt: i.date(), userId: i.string().indexed(),
+      title: i.string(), body: i.string(), createdAt: i.date(), datedAt: i.string().optional(), userId: i.string().indexed(),
     }),
     workroomPreferences: i.entity({ projects: i.json(), userId: i.string().indexed() }),
     userProfiles: i.entity({

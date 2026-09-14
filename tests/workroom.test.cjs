@@ -80,6 +80,75 @@ test('note search includes body text and sorts recent notes first',()=>{
   assert.deepEqual(matchingNotes(notes,' HOMEPAGE ').map(n=>n.id),['two','one']);
 });
 
+test('calendar groups due dates by local day, hides completed, and lists oldest overdue first',()=>{
+  const {calendarDay,dueAtForDay,dueTimeLabel,tasksOnDay,overdueOnCalendar,unscheduledCount,monthGrid,shiftCalendarDay,calendarChipLabel}=require(require('node:path').join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
+  const dated=[
+    {...emptyTask('High later','a'),dueAt:'2026-09-14T17:00',priority:'High'},
+    {...emptyTask('Medium first','b'),dueAt:'2026-09-14T09:30',priority:'Medium'},
+    {...emptyTask('Done same day','c'),dueAt:'2026-09-14T08:00',done:true,completedAt:'2026-09-14T12:00'},
+    {...emptyTask('Overdue','d'),dueAt:'2026-09-10T16:00'},
+    {...emptyTask('Undated','e')},
+  ];
+  assert.equal(calendarDay('2026-09-14T16:00'),'2026-09-14');
+  assert.equal(dueAtForDay('2026-09-14'),'2026-09-14T16:00');
+  assert.equal(dueTimeLabel('2026-09-14T16:00'),'4:00 PM');
+  assert.equal(dueTimeLabel('2026-09-14T00:00'),'');
+  assert.deepEqual(tasksOnDay(dated,'2026-09-14').map(t=>t.id),['c','b','a']);
+  assert.deepEqual(tasksOnDay(dated,'2026-09-14',true).map(t=>t.id),['b','a']);
+  assert.deepEqual(overdueOnCalendar(dated,new Date('2026-09-14T08:00').getTime()).map(t=>t.id),['d']);
+  assert.equal(unscheduledCount(dated),1);
+  assert.equal(monthGrid(2026,8).filter(Boolean)[0],'2026-09-01');
+  assert.equal(shiftCalendarDay('2026-01-31',-1),'2025-12-31');
+  assert.equal(calendarChipLabel(dated[1],'Kickoff'),'Medium first, due 9:30 AM, linked note Kickoff');
+});
+
+test('week days, reschedule, reminders, load, and project accents stay on local dates',()=>{
+  const {weekDays,shiftCalendarWeek,rescheduleToDay,shiftRemindAt,applyDueChange,dayLoad,formatMinutes,projectAccent,notesOnDay}=require(require('node:path').join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
+  assert.deepEqual(weekDays('2026-09-16'),['2026-09-13','2026-09-14','2026-09-15','2026-09-16','2026-09-17','2026-09-18','2026-09-19']);
+  assert.equal(shiftCalendarWeek('2026-09-16',1),'2026-09-23');
+  assert.equal(rescheduleToDay('2026-09-14T09:30','2026-09-17'),'2026-09-17T09:30');
+  assert.equal(rescheduleToDay('','2026-09-17'),'2026-09-17T16:00');
+  assert.equal(shiftRemindAt('2026-09-14T08:00','2026-09-14T16:00','2026-09-16T16:00'),'2026-09-16T08:00');
+  assert.equal(shiftRemindAt('2026-09-14T08:00','2026-09-14T16:00','2026-09-14T18:00'),'2026-09-14T08:00');
+  const moved=applyDueChange({...emptyTask('A','a'),dueAt:'2026-09-14T09:30',remindAt:'2026-09-14T08:00'},'2026-09-17T09:30');
+  assert.equal(moved.dueAt,'2026-09-17T09:30');
+  assert.equal(moved.remindAt,'2026-09-17T08:00');
+  const loadTasks=[{...emptyTask('A','a'),dueAt:'2026-09-14T09:00',minutes:45},{...emptyTask('B','b'),dueAt:'2026-09-14T10:00',minutes:30,done:true}];
+  assert.equal(dayLoad(loadTasks,'2026-09-14'),45);
+  assert.equal(formatMinutes(135),'2h 15m');
+  assert.equal(projectAccent('General'),'');
+  assert.ok(projectAccent('Website refresh'));
+  assert.equal(projectAccent('Website refresh'),projectAccent('Website refresh'));
+  assert.deepEqual(notesOnDay([{id:'n',title:'Kickoff',body:'',createdAt:'2026-09-01',datedAt:'2026-09-14'}],'2026-09-14').map(n=>n.id),['n']);
+  assert.deepEqual(notesOnDay([{id:'n',title:'Kickoff',body:'',createdAt:'2026-09-14'}],'2026-09-14'),[]);
+});
+
+test('repeating tasks roll locally, skip one occurrence, and only ghost future dates',()=>{
+  const {nextRepeatDue,skipRepeat,rollRepeatingTask,upcomingOccurrences,ghostsOnDay}=require(require('node:path').join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
+  assert.equal(nextRepeatDue('2026-09-14T16:00','weekly'),'2026-09-21T16:00');
+  assert.equal(nextRepeatDue('2026-09-18T09:00','weekdays'),'2026-09-21T09:00');
+  assert.equal(nextRepeatDue('2026-01-31T16:00','monthly'),'2026-02-28T16:00');
+  const weekly={...emptyTask('Standup','live'),dueAt:'2026-09-14T09:00',remindAt:'2026-09-14T08:30',repeat:'weekly',steps:[{id:'s',title:'Prep',done:true,parentId:null}]};
+  assert.equal(skipRepeat(weekly).dueAt,'2026-09-21T09:00');
+  assert.equal(skipRepeat(weekly).remindAt,'2026-09-21T08:30');
+  const next=rollRepeatingTask(weekly,'next');
+  assert.equal(next.id,'next');
+  assert.equal(next.dueAt,'2026-09-21T09:00');
+  assert.equal(next.seriesId,'live');
+  assert.equal(next.steps[0].done,false);
+  assert.deepEqual(upcomingOccurrences(weekly,2),['2026-09-21','2026-09-28']);
+  assert.deepEqual(ghostsOnDay([weekly],'2026-09-21').map(t=>t.id),['live']);
+  assert.deepEqual(ghostsOnDay([weekly],'2026-09-14'),[]);
+});
+
+test('cloud mapping keeps meeting dates and repeat fields',()=>{
+  const state=sync.decodeCloud({todos:[{id:'legacy-id',text:'Weekly recap',completed:false,createdDate:'2026-09-01T10:00:00Z',userId:'owner',followUp:{notes:'',dateTime:'2026-09-15T10:00:00'},repeat:'weekly',seriesId:'legacy-id'}],workroomNotes:[{id:'note',title:'Kickoff',body:'',createdAt:'2026-09-01T10:00:00Z',datedAt:'2026-09-14'}],userProfiles:[{id:'profile',displayName:'Chris'}]}, {alerts:[],timer:null});
+  assert.equal(state.tasks[0].repeat,'weekly');
+  assert.equal(state.notes[0].datedAt,'2026-09-14');
+  const after={...state,tasks:state.tasks.map(t=>({...t,repeat:'monthly'}))};
+  assert.deepEqual(sync.cloudChanges(state,after,'user','profile'),[{entity:'todos',id:'legacy-id',values:{repeat:'monthly'}}]);
+});
+
 test('importing a backup of the same account does not duplicate existing IDs',()=>{
   const cloud=sync.blankWorkspace();cloud.tasks=[emptyTask('Existing','same-id')];
   const merged=sync.mergeDevice(cloud,cloud,{},()=>{throw Error('Should not allocate another ID');});
