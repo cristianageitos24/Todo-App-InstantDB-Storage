@@ -74,3 +74,50 @@ export function matchingNotes(notes: WorkNote[], search: string): WorkNote[] {
   return notes.filter(n => `${n.title} ${n.body}`.toLowerCase().includes(query)).sort((a,b) => b.createdAt.localeCompare(a.createdAt));
 }
 export function isTodayTask(task: WorkTask, day: string): boolean { return !task.done && task.today === day; }
+
+const calendarPriority = {High: 0, Medium: 1, Low: 2};
+export function calendarDay(dueAt: string): string {
+  return dueAt ? dueAt.slice(0, 10) : '';
+}
+export function dueAtForDay(day: string, hour = 16): string {
+  return day ? `${day}T${String(hour).padStart(2, '0')}:00` : '';
+}
+export function dueTimeLabel(dueAt: string): string {
+  const match = dueAt.match(/T(\d{2}):(\d{2})/);
+  if (!match) return '';
+  const hour = Number(match[1]) % 12 || 12;
+  return `${hour}:${match[2]} ${Number(match[1]) >= 12 ? 'PM' : 'AM'}`;
+}
+export function sortCalendarTasks(tasks: WorkTask[]): WorkTask[] {
+  return [...tasks].sort((a, b) => a.dueAt.localeCompare(b.dueAt) || calendarPriority[a.priority] - calendarPriority[b.priority]);
+}
+export function tasksOnDay(tasks: WorkTask[], day: string, hideCompleted = false): WorkTask[] {
+  return sortCalendarTasks(tasks.filter(t => calendarDay(t.dueAt) === day && (!hideCompleted || !t.done)));
+}
+export function overdueOnCalendar(tasks: WorkTask[], now: number): WorkTask[] {
+  return tasks.filter(t => !t.done && !!t.dueAt && new Date(t.dueAt).getTime() < now).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
+}
+export function unscheduledCount(tasks: WorkTask[]): number {
+  return tasks.filter(t => !t.done && !t.dueAt).length;
+}
+export function monthGrid(year: number, month: number): (string | null)[] {
+  const firstWeekday = new Date(year, month, 1).getDay();
+  const lastDate = new Date(year, month + 1, 0).getDate();
+  const cells: (string | null)[] = Array.from({length: firstWeekday}, () => null);
+  for (let d = 1; d <= lastDate; d++) cells.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+  while (cells.length % 7) cells.push(null);
+  return cells;
+}
+export function shiftCalendarDay(day: string, monthDelta: number): string {
+  const year = Number(day.slice(0, 4));
+  const month = Number(day.slice(5, 7)) - 1;
+  const date = Number(day.slice(8, 10));
+  const next = new Date(year, month + monthDelta, 1);
+  const last = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(Math.min(date, last)).padStart(2, '0')}`;
+}
+export function calendarChipLabel(task: WorkTask, noteTitle?: string): string {
+  const due = dueTimeLabel(task.dueAt);
+  const note = noteTitle ? `, linked note ${noteTitle}` : '';
+  return `${task.title || 'Untitled task'}${due ? `, due ${due}` : ''}${note}`;
+}

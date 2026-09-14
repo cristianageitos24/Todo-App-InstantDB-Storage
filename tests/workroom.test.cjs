@@ -80,6 +80,27 @@ test('note search includes body text and sorts recent notes first',()=>{
   assert.deepEqual(matchingNotes(notes,' HOMEPAGE ').map(n=>n.id),['two','one']);
 });
 
+test('calendar groups due dates by local day, hides completed, and lists oldest overdue first',()=>{
+  const {calendarDay,dueAtForDay,dueTimeLabel,tasksOnDay,overdueOnCalendar,unscheduledCount,monthGrid,shiftCalendarDay,calendarChipLabel}=require(require('node:path').join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
+  const dated=[
+    {...emptyTask('High later','a'),dueAt:'2026-09-14T17:00',priority:'High'},
+    {...emptyTask('Medium first','b'),dueAt:'2026-09-14T09:30',priority:'Medium'},
+    {...emptyTask('Done same day','c'),dueAt:'2026-09-14T08:00',done:true,completedAt:'2026-09-14T12:00'},
+    {...emptyTask('Overdue','d'),dueAt:'2026-09-10T16:00'},
+    {...emptyTask('Undated','e')},
+  ];
+  assert.equal(calendarDay('2026-09-14T16:00'),'2026-09-14');
+  assert.equal(dueAtForDay('2026-09-14'),'2026-09-14T16:00');
+  assert.equal(dueTimeLabel('2026-09-14T16:00'),'4:00 PM');
+  assert.deepEqual(tasksOnDay(dated,'2026-09-14').map(t=>t.id),['c','b','a']);
+  assert.deepEqual(tasksOnDay(dated,'2026-09-14',true).map(t=>t.id),['b','a']);
+  assert.deepEqual(overdueOnCalendar(dated,new Date('2026-09-14T08:00').getTime()).map(t=>t.id),['d']);
+  assert.equal(unscheduledCount(dated),1);
+  assert.equal(monthGrid(2026,8).filter(Boolean)[0],'2026-09-01');
+  assert.equal(shiftCalendarDay('2026-01-31',-1),'2025-12-31');
+  assert.equal(calendarChipLabel(dated[1],'Kickoff'),'Medium first, due 9:30 AM, linked note Kickoff');
+});
+
 test('importing a backup of the same account does not duplicate existing IDs',()=>{
   const cloud=sync.blankWorkspace();cloud.tasks=[emptyTask('Existing','same-id')];
   const merged=sync.mergeDevice(cloud,cloud,{},()=>{throw Error('Should not allocate another ID');});
