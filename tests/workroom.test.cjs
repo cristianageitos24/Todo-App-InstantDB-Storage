@@ -1,7 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {join}=require('node:path');
-const {emptyTask,captureTasks,captureMeeting,parseCapture,toggleStep,descendantIds,dueReminders,isWorkState,seedWorkroom,migrateDaylight,normalizeWorkState,childTasks,isMeetingTask,isMeetingComplete,isRootTask,meetingProgress,applyMeetingCompletion,rollRepeatingTask,syncMeetingParents}=require(join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
+const {emptyTask,captureTasks,captureMeeting,parseCapture,groupCapturePreview,toggleStep,descendantIds,dueReminders,isWorkState,seedWorkroom,migrateDaylight,normalizeWorkState,childTasks,isMeetingTask,isMeetingComplete,isRootTask,meetingProgress,applyMeetingCompletion,rollRepeatingTask,syncMeetingParents}=require(join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
 const {initialWorkspace}=require(join(process.env.WORKROOM_TEST_BUILD,'organizer.js'));
 const options={project:'General',priority:'High',dueAt:'2026-09-14T16:00',remindAt:'2026-09-14T15:00',noteId:null};
 let id=0;const uuid=()=>String(++id);
@@ -16,6 +16,14 @@ test('capture accepts bullets, tabs, blank lines, and commonly indented paste',(
  const tasks=captureTasks('  - First\n\t\t- [ ] Child\n\n  2. Second',options,uuid);
  assert.equal(tasks.length,2);assert.equal(tasks[0].steps[0].title,'Child');
  assert.deepEqual(parseCapture('  \n- \n'),[]);
+});
+test('groupCapturePreview nests checklist lines under each action item',()=>{
+ const grouped=groupCapturePreview(parseCapture('Prepare brief\n  Goals\n    Ask client\nCollect content'));
+ assert.equal(grouped.length,2);
+ assert.equal(grouped[0].title,'Prepare brief');
+ assert.equal(grouped[0].steps.length,2);
+ assert.equal(grouped[1].title,'Collect content');
+ assert.equal(grouped[1].steps.length,0);
 });
 test('checking a parent completes descendants; reopening a child reopens ancestors',()=>{
  const steps=captureTasks('Task\n  Parent\n    Child\n  Other',options,uuid)[0].steps;

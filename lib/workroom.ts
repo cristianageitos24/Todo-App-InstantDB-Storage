@@ -40,6 +40,14 @@ export function parseCapture(text: string): {title:string; indent:number}[] {
   const base=Math.min(...lines.map(indent));
   return lines.map(line=>({title:line.trim().replace(/^(?:[-*•]\s*|\d+[.)]\s*)(?:\[[ xX]\]\s*)?/,'').slice(0,300),indent:Math.max(0,indent(line)-base)})).filter(l=>l.title);
 }
+export function groupCapturePreview(lines: {title:string; indent:number}[]): {title:string; steps:{title:string; indent:number}[]}[] {
+  const groups:{title:string; steps:{title:string; indent:number}[]}[]=[];
+  for(const line of lines){
+    if(line.indent===0||!groups.length)groups.push({title:line.title,steps:[]});
+    else groups[groups.length-1].steps.push(line);
+  }
+  return groups;
+}
 export function captureTasks(text:string,options:{project:string;priority:Priority;dueAt:string;remindAt:string;noteId:string|null},id:()=>string):WorkTask[]{
   const result:WorkTask[]=[];let parents:{indent:number;id:string}[]=[];
   for(const line of parseCapture(text)){
@@ -205,7 +213,6 @@ export function migrateDaylight(value:unknown):WorkState {
   return next;
 }
 
-export const MEETING_TEMPLATE = 'Decisions\n\n\nOpen questions\n';
 export function matchingNotes(notes: WorkNote[], search: string): WorkNote[] {
   const query = search.trim().toLowerCase();
   return notes.filter(n => `${n.title} ${n.body}`.toLowerCase().includes(query)).sort((a,b) => b.createdAt.localeCompare(a.createdAt));
