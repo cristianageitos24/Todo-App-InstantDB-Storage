@@ -27,6 +27,8 @@ const _schema = i.schema({
       minutes: i.number().optional(),
       steps: i.json().optional(),
       noteId: i.string().optional(),
+      parentId: i.string().optional(),
+      kind: i.string().optional(),
       today: i.string().optional(),
       repeat: i.string().optional(),
       seriesId: i.string().optional(),

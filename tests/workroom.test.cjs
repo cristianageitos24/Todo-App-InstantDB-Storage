@@ -1,7 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {join}=require('node:path');
-const {emptyTask,captureTasks,parseCapture,toggleStep,descendantIds,dueReminders,isWorkState,seedWorkroom,migrateDaylight}=require(join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
+const {emptyTask,captureTasks,captureMeeting,parseCapture,toggleStep,descendantIds,dueReminders,isWorkState,seedWorkroom,migrateDaylight,normalizeWorkState,childTasks,isMeetingTask,isMeetingComplete,isRootTask,meetingProgress,applyMeetingCompletion,rollRepeatingTask,syncMeetingParents}=require(join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
 const {initialWorkspace}=require(join(process.env.WORKROOM_TEST_BUILD,'organizer.js'));
 const options={project:'General',priority:'High',dueAt:'2026-09-14T16:00',remindAt:'2026-09-14T15:00',noteId:null};
 let id=0;const uuid=()=>String(++id);
@@ -33,9 +33,11 @@ test('reminders ignore completed, future, and already delivered tasks; snooze re
  assert.equal(dueReminders(base,now).length,0);assert.equal(dueReminders(base,now+10*60000).length,1);
 });
 test('backup roundtrip accepts persisted timer and rejects invalid structures',()=>{
- const seed=seedWorkroom();seed.timer={taskId:seed.tasks[0].id,remaining:1500,endsAt:Date.now()+1500000};
+ const seed=seedWorkroom();
+ const timed=seed.tasks.find(t=>!t.done&&(t.kind||'task')!=='meeting'&&t.steps.length);
+ seed.timer={taskId:timed.id,remaining:1500,endsAt:Date.now()+1500000};
  assert.ok(isWorkState(JSON.parse(JSON.stringify(seed))));
- for(const mutate of [s=>s.tasks.push(s.tasks[0]),s=>s.tasks[0].steps[0].parentId='missing',s=>s.tasks[0].steps[0].parentId=s.tasks[0].steps[0].id,s=>s.tasks[0].minutes=Infinity,s=>s.tasks[0].remindAt='bad date',s=>s.timer.taskId='missing',s=>s.timer.endsAt='tomorrow',s=>s.notes.push(s.notes[0]),s=>s.tasks[0].noteId='missing',s=>s.projects=[],s=>s.tasks[0].sample='yes']){
+ for(const mutate of [s=>s.tasks.push(s.tasks[0]),s=>{const t=s.tasks.find(x=>x.steps.length);t.steps[0].parentId='missing';},s=>{const t=s.tasks.find(x=>x.steps.length);t.steps[0].parentId=t.steps[0].id;},s=>s.tasks[0].minutes=Infinity,s=>s.tasks[0].remindAt='bad date',s=>s.timer.taskId='missing',s=>s.timer.endsAt='tomorrow',s=>s.notes.push(s.notes[0]),s=>s.tasks[0].noteId='missing',s=>s.projects=[],s=>s.tasks[0].sample='yes',s=>{const child=s.tasks.find(t=>t.parentId);child.parentId='missing';},s=>{const meeting=s.tasks.find(t=>t.kind==='meeting');meeting.parentId=s.tasks.find(t=>t.id!==meeting.id).id;}]){
  const invalid=structuredClone(seed);mutate(invalid);assert.equal(isWorkState(invalid),false);
  }
  assert.equal(isWorkState(null),false);assert.equal(isWorkState({version:2}),false);
@@ -58,7 +60,7 @@ test('cloud mapping keeps legacy identities and follow-up context',()=>{
 test('cloud edits update only changed fields and never write unrelated tasks',()=>{
   const before=sync.blankWorkspace();before.tasks=[emptyTask('One','one'),emptyTask('Two','two')];
   const after={...before,tasks:before.tasks.map(t=>t.id==='one'?{...t,today:'2026-09-13'}:t)};
-  assert.deepEqual(sync.cloudChanges(before,after,'user','profile'),[{entity:'todos',id:'one',values:{today:'2026-09-13'}}]);
+  assert.deepEqual(sync.cloudChanges(before,after,'user','profile'),[{entity:'todos',id:'one',values:{today:'2026-09-13',userId:'user'}}]);
   const rows={todos:[{id:'one',text:'Remote title',today:''},{id:'two',text:'Two'}]};
   assert.equal(sync.overlayCloud(rows,sync.cloudChanges(before,after,'user','profile')).todos[0].text,'Remote title');
 });
@@ -146,7 +148,7 @@ test('cloud mapping keeps meeting dates and repeat fields',()=>{
   assert.equal(state.tasks[0].repeat,'weekly');
   assert.equal(state.notes[0].datedAt,'2026-09-14');
   const after={...state,tasks:state.tasks.map(t=>({...t,repeat:'monthly'}))};
-  assert.deepEqual(sync.cloudChanges(state,after,'user','profile'),[{entity:'todos',id:'legacy-id',values:{repeat:'monthly'}}]);
+  assert.deepEqual(sync.cloudChanges(state,after,'user','profile'),[{entity:'todos',id:'legacy-id',values:{repeat:'monthly',userId:'user'}}]);
 });
 
 test('importing a backup of the same account does not duplicate existing IDs',()=>{
@@ -154,3 +156,101 @@ test('importing a backup of the same account does not duplicate existing IDs',()
   const merged=sync.mergeDevice(cloud,cloud,{},()=>{throw Error('Should not allocate another ID');});
   assert.equal(merged.tasks.length,1);assert.equal(merged.tasks[0].id,'same-id');
 });
+
+test('meeting capture creates one parent plus action items and keeps indent as checklist steps',()=>{
+  const tasks=captureMeeting('Prepare brief\n  Goals\n    Ask client\n  Pages\nCollect content\nBuild timeline\nSend recap',{title:'Monday check-in',...options},uuid);
+  assert.equal(tasks.filter(isMeetingTask).length,1);
+  assert.equal(tasks.filter(t=>!isMeetingTask(t)).length,4);
+  const parent=tasks.find(isMeetingTask);
+  assert.equal(parent.title,'Monday check-in');
+  assert.ok(tasks.filter(t=>!isMeetingTask(t)).every(t=>t.parentId===parent.id&&t.noteId===options.noteId));
+  assert.equal(tasks.find(t=>t.title==='Prepare brief').steps.length,3);
+  assert.equal(isRootTask(parent),true);
+  assert.deepEqual(tasks.filter(isRootTask).map(t=>t.id),[parent.id]);
+});
+
+test('meeting progress stays on the parent and completed children remain in the bundle',()=>{
+  let tasks=captureMeeting('A\nB\nC\nD\nE\nF\nG',{title:'Standup',...options},uuid);
+  const parent=tasks.find(isMeetingTask);
+  const ids=childTasks(tasks,parent.id).slice(0,3).map(t=>t.id);
+  tasks=syncMeetingParents(tasks.map(t=>ids.includes(t.id)?{...t,done:true,completedAt:'2026-09-14T10:00:00.000Z'}:t));
+  assert.deepEqual(meetingProgress(tasks,parent.id),{done:3,total:7});
+  assert.equal(isMeetingComplete(tasks,parent.id),false);
+  assert.equal(childTasks(tasks,parent.id).length,7);
+  assert.equal(childTasks(tasks,parent.id).filter(t=>t.done).length,3);
+  const finished=applyMeetingCompletion(tasks,parent,true);
+  assert.equal(isMeetingComplete(finished,parent.id),true);
+  assert.ok(finished.find(t=>t.id===parent.id).done);
+  assert.ok(childTasks(finished,parent.id).every(t=>t.done));
+});
+
+test('existing note-linked tasks migrate into a meeting bundle without duplicating',()=>{
+  const note={id:'kickoff',title:'Website kickoff',body:'Decisions',createdAt:'2026-09-01T10:00:00.000Z'};
+  const state={version:2,name:'',projects:['General'],alerts:[],timer:null,notes:[note],tasks:[{...emptyTask('Prepare brief','a'),noteId:'kickoff'},{...emptyTask('Send recap','b'),noteId:'kickoff',done:true,completedAt:'2026-09-02T10:00:00.000Z'}]};
+  const first=normalizeWorkState(state,()=>'bundled-parent');
+  const meeting=first.tasks.find(isMeetingTask);
+  assert.ok(meeting);
+  assert.equal(meeting.title,'Website kickoff');
+  assert.equal(meeting.noteId,'kickoff');
+  assert.ok(first.tasks.filter(t=>!isMeetingTask(t)).every(t=>t.parentId===meeting.id));
+  assert.equal(meetingProgress(first.tasks,meeting.id).done,1);
+  const second=normalizeWorkState(first,()=>'should-not-run');
+  assert.equal(second.tasks.filter(isMeetingTask).length,1);
+  assert.equal(second.tasks.length,first.tasks.length);
+});
+
+test('dropped meeting kind is restored from parentId links and existing bundle ids',()=>{
+  const note={id:'kickoff',title:'Website kickoff',body:'Decisions',createdAt:'2026-09-01T10:00:00.000Z'};
+  const linked={version:2,name:'',projects:['General'],alerts:[],timer:null,notes:[note],tasks:[{...emptyTask('Kickoff','p'),parentId:null},{...emptyTask('Prepare brief','a'),parentId:'p'}]};
+  const restored=normalizeWorkState(linked);
+  assert.equal(restored.tasks.find(t=>t.id==='p').kind,'meeting');
+  assert.equal(restored.tasks.find(t=>t.id==='a').parentId,'p');
+  const occupant={version:2,name:'',projects:['General'],alerts:[],timer:null,notes:[note],tasks:[{...emptyTask('Website kickoff','bundled-parent'),noteId:'kickoff'},{...emptyTask('Prepare brief','a'),noteId:'kickoff'},{...emptyTask('Send recap','b'),noteId:'kickoff'}]};
+  const bundled=normalizeWorkState(occupant,()=>'bundled-parent');
+  assert.equal(bundled.tasks.find(t=>t.id==='bundled-parent').kind,'meeting');
+  assert.equal(bundled.tasks.filter(isMeetingTask).length,1);
+  assert.ok(bundled.tasks.filter(t=>t.id!=='bundled-parent').every(t=>t.parentId==='bundled-parent'));
+  const dup={version:2,name:'',projects:['General'],alerts:[],timer:null,notes:[note],tasks:[{...emptyTask('Website kickoff','bundled-parent'),kind:'meeting',noteId:'kickoff'},{...emptyTask('Website kickoff','other'),kind:'meeting',noteId:'kickoff'},{...emptyTask('Prepare brief','a'),parentId:'other',noteId:'kickoff'}]};
+  const merged=normalizeWorkState(dup,()=>'bundled-parent');
+  assert.equal(merged.tasks.filter(isMeetingTask).length,1);
+  assert.equal(merged.tasks.find(isMeetingTask).id,'bundled-parent');
+  assert.equal(merged.tasks.find(t=>t.id==='other').parentId,'bundled-parent');
+  assert.ok(merged.tasks.filter(t=>!isMeetingTask(t)).every(t=>t.parentId==='bundled-parent'));
+});
+
+test('cloud encode and device import remap meeting parent ids',()=>{
+  const parent={...emptyTask('Kickoff','aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa'),kind:'meeting',noteId:'old-note'};
+  const child={...emptyTask('Send draft','bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb'),parentId:'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa',noteId:'old-note'};
+  const before=sync.blankWorkspace();
+  const after={...before,notes:[{id:'old-note',title:'Kickoff',body:'',createdAt:'2026-09-01T10:00:00.000Z'}],tasks:[parent,child]};
+  const created=sync.cloudChanges(before,after,'user','profile');
+  assert.ok(created.some(m=>m.entity==='todos'&&m.id==='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa'&&m.values.kind==='meeting'));
+  assert.ok(created.some(m=>m.entity==='todos'&&m.id==='bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb'&&m.values.parentId==='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa'));
+  const decoded=sync.decodeCloud({todos:[{id:'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa',text:'Kickoff',completed:false,createdDate:'2026-09-01T10:00:00Z',userId:'owner',kind:'meeting',noteId:'old-note'},{id:'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb',text:'Send draft',completed:false,createdDate:'2026-09-01T10:00:00Z',userId:'owner',parentId:'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa',noteId:'old-note'}],workroomNotes:[{id:'old-note',title:'Kickoff',body:'',createdAt:'2026-09-01T10:00:00Z'}]},{alerts:[],timer:null});
+  assert.equal(decoded.tasks.find(t=>t.id==='bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb').parentId,'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa');
+  assert.equal(decoded.tasks.find(t=>t.id==='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa').kind,'meeting');
+  const device=sync.blankWorkspace();
+  device.notes=[{id:'old-note',title:'Kickoff',body:'',createdAt:new Date().toISOString()}];
+  device.tasks=[parent,child];
+  const cloud=sync.blankWorkspace();
+  const ids={};let n=0;
+  const merged=sync.mergeDevice(cloud,device,ids,()=>`mapped-${++n}`);
+  const mappedParent=merged.tasks.find(t=>t.kind==='meeting');
+  const mappedChild=merged.tasks.find(t=>t.kind!=='meeting');
+  assert.equal(mappedChild.parentId,mappedParent.id);
+  assert.equal(mappedChild.noteId,merged.notes[0].id);
+  const collapsed=sync.mergeMutations([{entity:'todos',id:'x',values:{parentId:'p'}},{entity:'todos',id:'x',values:{parentId:'p'}}],[{entity:'todos',id:'x',values:{kind:'meeting'}}]);
+  assert.equal(collapsed.length,1);
+  assert.equal(collapsed[0].values.parentId,'p');
+  assert.equal(collapsed[0].values.kind,'meeting');
+});
+
+test('repeating children keep their meeting parent when they roll',()=>{
+  const parent={...emptyTask('Standup','meet'),kind:'meeting'};
+  const weekly={...emptyTask('Recap','live'),parentId:'meet',dueAt:'2026-09-14T09:00',repeat:'weekly'};
+  const next=rollRepeatingTask(weekly,'next');
+  assert.equal(next.parentId,'meet');
+  assert.equal(next.kind,'task');
+  assert.equal(isMeetingTask(parent),true);
+});
+
