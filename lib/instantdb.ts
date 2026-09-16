@@ -40,22 +40,30 @@ export function storeSessionTimestamp(): void {
 }
 
 /**
+ * Whether this browser has a recorded sign-in timestamp.
+ * Existing InstantDB sessions without a stamp are grandfathered on first load.
+ */
+export function hasSessionTimestamp(): boolean {
+  if (typeof window === 'undefined') return false;
+  const timestampStr = localStorage.getItem(SESSION_STORAGE_KEY);
+  if (!timestampStr) return false;
+  return !Number.isNaN(parseInt(timestampStr, 10));
+}
+
+/**
  * Check if session is still valid (within 30 days)
  * @returns true if session is valid, false otherwise
  */
 export function isSessionValid(): boolean {
   if (typeof window === 'undefined') return false;
-  
+
   const timestampStr = localStorage.getItem(SESSION_STORAGE_KEY);
   if (!timestampStr) return false;
-  
+
   const timestamp = parseInt(timestampStr, 10);
-  if (isNaN(timestamp)) return false;
-  
-  const now = Date.now();
-  const elapsed = now - timestamp;
-  
-  return elapsed < SESSION_DURATION_MS;
+  if (Number.isNaN(timestamp)) return false;
+
+  return Date.now() - timestamp < SESSION_DURATION_MS;
 }
 
 /**

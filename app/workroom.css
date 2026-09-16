@@ -218,3 +218,48 @@
 .work-task-row.is-picked{background:#eef3e6}
 .heading-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 @media(max-width:680px){.priority-flag-btn{width:28px;height:28px}}
+
+/* Full-page sign-in: editorial panel + magic-code form. */
+.wr-login{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr);min-height:100vh;background:#f7f8f4;color:var(--ink,#293b35)}
+.wr-login-editorial{position:relative;display:flex;align-items:center;padding:64px 56px;background:
+  radial-gradient(1200px 480px at -10% 110%,#d7e4c955 0%,transparent 58%),
+  linear-gradient(165deg,#eef3e6 0%,#f4f7ef 42%,#e7eee0 100%);
+  overflow:hidden}
+.wr-login-editorial:before{content:'';position:absolute;inset:auto -80px -120px auto;width:340px;height:340px;border:1px solid #c5d3bb80;border-radius:50%;pointer-events:none}
+.wr-login-editorial:after{content:'';position:absolute;inset:auto -20px -60px auto;width:220px;height:220px;border:1px solid #b7c7ab55;border-radius:50%;pointer-events:none}
+.wr-login-editorial-inner{position:relative;z-index:1;max-width:440px}
+.wr-login .wr-brand{font-size:28px;padding:0;margin-bottom:48px;letter-spacing:-1.2px}
+.wr-login-kicker{font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:#5d6552;margin:0 0 12px}
+.wr-login-editorial h1{font:normal 48px/1.12 Georgia,serif;letter-spacing:-1.1px;color:#314532;margin:0 0 18px}
+.wr-login-lede{font-size:16px;line-height:1.65;color:#586650;margin:0 0 36px;max-width:34ch}
+.wr-login-points{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:16px}
+.wr-login-points li{display:flex;align-items:center;gap:12px;font-size:14px;color:#3e5344}
+.wr-login-points svg{color:#54693b;flex-shrink:0}
+.wr-login-panel{display:flex;align-items:center;justify-content:center;padding:48px 40px;background:#fafbf8}
+.wr-login-card{width:100%;max-width:400px}
+.wr-login-card h2{font:normal 32px/1.2 Georgia,serif;color:#314532;margin:0 0 12px}
+.wr-login-copy{font-size:14px;line-height:1.7;color:#586650;margin:0 0 28px}
+.wr-login-copy strong{font-weight:600;color:#314532;overflow-wrap:anywhere}
+.wr-login-form{display:flex;flex-direction:column;gap:16px}
+.wr-login-form label{display:flex;flex-direction:column;gap:8px;font-size:12px;color:#546946}
+.wr-login-form input{width:100%;border:1px solid #dce4d3;border-radius:8px;background:#fff;padding:13px 14px;color:#41563a;font-size:16px;line-height:1.5}
+.wr-login-form input:focus{outline:2px solid #8ba494;outline-offset:2px}
+.wr-login-form input[inputmode=numeric]{font-variant-numeric:tabular-nums}
+.wr-login-form input[inputmode=numeric]:not(:placeholder-shown){letter-spacing:.35em}
+.wr-login-submit{width:100%;padding:13px 16px;font-size:13px!important;border-radius:8px}
+.wr-login-alt{display:flex;flex-wrap:wrap;gap:16px 20px}
+.wr-login-stay{margin:28px 0 0;font-size:12px;line-height:1.6;color:#68775f}
+.wr-login .wr-error{margin:0}
+@media(max-width:900px){
+  .wr-login{grid-template-columns:1fr}
+  .wr-login-panel{order:-1;padding:36px 24px 28px;align-items:flex-start}
+  .wr-login-editorial{padding:28px 24px 48px;min-height:auto}
+  .wr-login .wr-brand{margin-bottom:28px;font-size:24px}
+  .wr-login-editorial h1{font-size:34px}
+  .wr-login-lede{margin-bottom:24px;font-size:15px}
+  .wr-login-card h2{font-size:28px}
+  .wr-login-editorial:before,.wr-login-editorial:after{display:none}
+}
+@media(max-width:680px){
+  .wr-login-form input{font-size:16px}
+}

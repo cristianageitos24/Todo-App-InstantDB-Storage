@@ -1,14 +1,58 @@
 'use client';
+
 import {useState} from 'react';
-import {db} from '@/lib/instantdb';
-export function WorkroomAccount({email,pending,importDevice}:{email?:string;pending:boolean;importDevice:()=>void}){
-  const [address,setAddress]=useState('');
-  const [sentTo,setSentTo]=useState('');
-  const [code,setCode]=useState('');
-  const [busy,setBusy]=useState(false);
-  const [error,setError]=useState('');
-  const [message,setMessage]=useState('');
-  async function send(){setBusy(true);setError('');try{const value=(sentTo||address).trim();await db.auth.sendMagicCode({email:value});setSentTo(value);setMessage('Check your email for a sign-in code.');}catch(e){setError((e as Error).message||'Could not send a code.');}finally{setBusy(false);}}
-  async function verify(){setBusy(true);setError('');try{await db.auth.signInWithMagicCode({email:sentTo,code:code.trim()});}catch(e){setError((e as Error).message||'That code did not work. Try again.');}finally{setBusy(false);}}
-  return <section className="settings-section cloud-account"><h3>{email?'Your account':'Sign in to sync'}</h3>{email?<><p>{email}</p><p>Use this email on your phone and computer to access the same tasks and notes.</p><div className="sync-controls"><button className="wr-secondary" disabled={pending} onClick={()=>{if(window.confirm('Add this browser’s non-example tasks and notes to this account? Existing account work and the device copy will be kept.'))importDevice();}}>Import this device’s work</button><button className="wr-text" disabled={pending||busy} onClick={async()=>{setBusy(true);try{await db.auth.signOut();}catch{setError('Could not sign out. Please try again.');}finally{setBusy(false);}}}>Sign out</button></div>{pending&&<p role="status">Waiting for your changes to sync before signing out.</p>}</>:<form onSubmit={e=>{e.preventDefault();void(sentTo?verify():send());}} className="capture-form"><p>Your device workspace stays here until you choose to import it.</p>{sentTo?<label>Email code<input autoComplete="one-time-code" inputMode="numeric" value={code} onChange={e=>setCode(e.target.value)} required aria-label="Email sign-in code"/></label>:<label>Email<input type="email" autoComplete="email" value={address} onChange={e=>setAddress(e.target.value)} required/></label>}<div className="sync-controls"><button className="wr-primary" disabled={busy} type="submit">{busy?'Please wait…':sentTo?'Sign in':'Email me a code'}</button>{sentTo&&<><button type="button" className="wr-text" disabled={busy} onClick={()=>void send()}>Resend code</button><button type="button" className="wr-text" disabled={busy} onClick={()=>{setSentTo('');setCode('');setMessage('');setError('');}}>Change email</button></>}</div></form>}{message&&<p role="status">{message}</p>}{error&&<p className="wr-error" role="alert">{error}</p>}</section>;
+import {clearSessionTimestamp, db} from '@/lib/instantdb';
+
+export function WorkroomAccount({
+  email,
+  pending,
+  importDevice,
+}: {
+  email?: string;
+  pending: boolean;
+  importDevice: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  return (
+    <section className="settings-section cloud-account">
+      <h3>Your account</h3>
+      {email && <p>{email}</p>}
+      <p>Use this email on your phone and computer to access the same tasks and notes. You’ll stay signed in on this device for 30 days.</p>
+      <div className="sync-controls">
+        <button
+          className="wr-secondary"
+          disabled={pending}
+          onClick={() => {
+            if (window.confirm('Add this browser’s non-example tasks and notes to this account? Existing account work and the device copy will be kept.')) {
+              importDevice();
+            }
+          }}
+        >
+          Import this device’s work
+        </button>
+        <button
+          className="wr-text"
+          disabled={pending || busy}
+          onClick={async () => {
+            setBusy(true);
+            setError('');
+            try {
+              await db.auth.signOut();
+              clearSessionTimestamp();
+            } catch {
+              setError('Could not sign out. Please try again.');
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          Sign out
+        </button>
+      </div>
+      {pending && <p role="status">Waiting for your changes to sync before signing out.</p>}
+      {error && <p className="wr-error" role="alert">{error}</p>}
+    </section>
+  );
 }
