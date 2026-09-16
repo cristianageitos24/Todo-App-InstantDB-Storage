@@ -1,10 +1,83 @@
 'use client';
-import {childTasks, isMeetingTask, meetingProgress, meetingProgressLabel, WorkNote, WorkTask} from '@/lib/workroom';
+import {useEffect, useId, useRef, useState} from 'react';
+import {childTasks, isMeetingTask, meetingProgress, meetingProgressLabel, Priority, WorkNote, WorkTask} from '@/lib/workroom';
 import {Icon} from './WorkUI';
+
+const PRIORITIES: Priority[] = ['High', 'Medium', 'Low'];
+
+function PriorityFlag({
+  title,
+  priority,
+  onChange,
+}: {
+  title: string;
+  priority: Priority;
+  onChange: (priority: Priority) => void;
+}) {
+  const id = useId();
+  const root = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (event: MouseEvent) => {
+      if (!root.current?.contains(event.target as Node)) close();
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      close();
+    };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('keydown', onKey, true);
+    };
+  }, [open]);
+  return (
+    <div className={`priority-flag is-${priority.toLowerCase()} ${open ? 'is-open' : ''}`} ref={root}>
+      <button
+        type="button"
+        className="priority-flag-btn"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={`${id}-menu`}
+        aria-label={`Priority: ${priority}`}
+        title={`Priority: ${priority}`}
+        onClick={() => setOpen(current => !current)}
+      >
+        <Icon name="flag" size={14}/>
+        {priority === 'High' && <span className="priority-flag-mark" aria-hidden="true">!</span>}
+      </button>
+      {open && (
+        <div className="priority-menu" id={`${id}-menu`} role="menu" aria-label={`Set priority for ${title || 'this task'}`}>
+          {PRIORITIES.map(level => (
+            <button
+              type="button"
+              role="menuitemradio"
+              aria-checked={level === priority}
+              className={`priority-option is-${level.toLowerCase()} ${level === priority ? 'is-selected' : ''}`}
+              key={level}
+              onClick={() => {
+                onChange(level);
+                close();
+              }}
+            >
+              <Icon name="flag" size={13}/>
+              {level}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function WorkTaskRow({
   task, tasks, notes, now, today, selected, expanded, nested, fromTitle, when,
-  onToggle, onOpen, onExpand, onToday, onNote,
+  onToggle, onOpen, onExpand, onToday, onNote, onPriority,
 }: {
   task: WorkTask;
   tasks: WorkTask[];
@@ -21,6 +94,7 @@ export default function WorkTaskRow({
   onExpand?: (id: string) => void;
   onToday: (task: WorkTask) => void;
   onNote?: (id: string) => void;
+  onPriority: (task: WorkTask, priority: Priority) => void;
 }) {
   const meeting = isMeetingTask(task);
   const children = meeting ? childTasks(tasks, task.id) : [];
@@ -31,6 +105,7 @@ export default function WorkTaskRow({
   return (
     <>
       <div className={`work-task-row ${selected === task.id ? 'selected' : ''} ${done ? 'is-done' : ''} ${meeting ? 'is-meeting' : ''} ${nested ? 'is-child' : ''}`}>
+        <PriorityFlag title={task.title} priority={task.priority} onChange={priority => onPriority(task, priority)}/>
         {meeting && (
           <button
             className={`meeting-toggle ${expanded ? 'is-open' : ''}`}
@@ -68,7 +143,6 @@ export default function WorkTaskRow({
               <Icon name="star" size={16}/>
             </button>
           )}
-          {!meeting && task.priority === 'High' && <span className="simple-priority" aria-label="High priority" title="High priority">!</span>}
           <span className={`task-date ${!done && task.dueAt && new Date(task.dueAt).getTime() < now ? 'overdue' : ''}`}>{task.dueAt ? when(task.dueAt, now) : ''}</span>
         </div>
       </div>
@@ -86,6 +160,7 @@ export default function WorkTaskRow({
           onToggle={onToggle}
           onOpen={onOpen}
           onToday={onToday}
+          onPriority={onPriority}
         />
       ))}
     </>

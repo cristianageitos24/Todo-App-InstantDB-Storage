@@ -253,6 +253,28 @@ test('cloud encode and device import remap meeting parent ids',()=>{
   assert.equal(collapsed[0].values.kind,'meeting');
 });
 
+test('projects can be created in place without colliding with views or existing names',()=>{
+  const {createProjectName,WORK_NAV_LABELS}=require(join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
+  assert.deepEqual(createProjectName('  Tires  ',['General']),{ok:true,name:'Tires'});
+  assert.equal(createProjectName('general',['General']).ok,false);
+  assert.equal(createProjectName('Today',['General'],WORK_NAV_LABELS).ok,false);
+  assert.equal(createProjectName('   ',['General']).ok,false);
+});
+
+test('clearing a due date also clears the reminder; reminder presets stay relative to due',()=>{
+  const {applyDueChange,remindAtFromDue,focusMinutes,emptyTask}=require(join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
+  const task={...emptyTask('Quote tires','a'),dueAt:'2026-09-16T12:00',remindAt:'2026-09-16T11:30'};
+  const cleared=applyDueChange(task,'');
+  assert.equal(cleared.dueAt,'');
+  assert.equal(cleared.remindAt,'');
+  assert.equal(remindAtFromDue('2026-09-16T12:00',30),'2026-09-16T11:30');
+  assert.equal(remindAtFromDue('2026-09-16T12:00',0),'2026-09-16T12:00');
+  assert.equal(remindAtFromDue('',15),'');
+  assert.equal(emptyTask('New','n').minutes,0);
+  assert.equal(focusMinutes(0),25);
+  assert.equal(focusMinutes(45),45);
+});
+
 test('repeating children keep their meeting parent when they roll',()=>{
   const parent={...emptyTask('Standup','meet'),kind:'meeting'};
   const weekly={...emptyTask('Recap','live'),parentId:'meet',dueAt:'2026-09-14T09:00',repeat:'weekly'};

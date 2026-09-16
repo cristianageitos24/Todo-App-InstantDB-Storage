@@ -169,3 +169,45 @@
 .capture-preview-main{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#41563a;line-height:1.5}
 .capture-preview-num{width:18px;height:18px;border-radius:4px;background:#eff4e8;color:#516942;font-size:10px;display:grid;place-items:center;flex-shrink:0;margin-top:1px}
 .capture-preview-step{display:flex;align-items:center;gap:6px;margin-top:6px;color:#59674c;font-size:11px}
+
+.detail-badges:empty{display:none;margin:0}
+.project-picker{position:relative;min-width:0;flex:1}
+.project-trigger{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border:0;background:transparent;padding:3px;color:inherit;text-align:left;min-height:28px}
+.project-trigger svg{transform:rotate(90deg);color:#8a9480;transition:transform .18s}
+.project-picker.is-open .project-trigger svg{transform:rotate(-90deg)}
+.project-menu{position:absolute;z-index:30;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #dce4d3;border-radius:8px;box-shadow:0 10px 30px #243e3318;padding:6px;max-height:220px;overflow:auto}
+.project-option{display:flex;align-items:center;gap:6px;width:100%;text-align:left;padding:8px 10px;border:0;background:transparent;border-radius:6px;color:#344e3c;font-size:12px}
+.project-option.is-selected,.project-option.is-active,.project-option:hover{background:#eef3e6}
+.project-option.is-create{color:#4b6b33;border-top:1px solid #eef1ea;margin-top:4px;padding-top:10px;border-radius:0 0 6px 6px}
+.project-create{display:flex;align-items:center;gap:8px;width:100%}
+.project-create input{flex:1;min-width:0;border:1px solid #dce4d3;border-radius:6px;padding:6px 8px;background:#fff;color:#41563a}
+.project-error{font-size:11px;color:#8f5438;margin:4px 0 0}
+.capture-form .project-trigger{border:1px solid #dce4d3;border-radius:6px;background:#fff;padding:10px;color:#41563a;min-height:42px}
+.capture-options .due-presets{padding-left:0;margin-top:8px}
+.detail-more{margin-top:2px}
+.detail-more summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;color:#68775f;font-size:12px;width:fit-content}
+.detail-more summary::-webkit-details-marker,.detail-more summary::marker{display:none;content:''}
+.detail-more summary svg{transform:rotate(90deg);color:#8a9480;transition:transform .18s}
+.detail-more[open] summary svg{transform:rotate(-90deg)}
+.detail-more-fields{display:flex;flex-direction:column;gap:14px;margin-top:12px}
+.detail-more-fields .due-presets{padding-left:110px}
+@media(max-width:680px){.detail-more-fields .due-presets{padding-left:0}}
+
+.priority-flag{position:relative;flex-shrink:0}
+.priority-flag-btn{border:0;background:transparent;width:22px;height:22px;padding:0;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;color:#8a9480;cursor:pointer;position:relative}
+.priority-flag-btn:hover,.priority-flag.is-open .priority-flag-btn{background:#eef3e6;color:#54693b}
+.priority-flag-btn:focus-visible{outline:2px solid #365c49;outline-offset:2px}
+.priority-flag.is-high .priority-flag-btn{color:#3d4f3e}
+.priority-flag.is-high .priority-flag-btn svg{fill:currentColor}
+.priority-flag.is-medium .priority-flag-btn{color:#7a8470}
+.priority-flag.is-low .priority-flag-btn{color:#c5cdc0}
+.priority-flag-mark{position:absolute;top:1px;right:1px;font-size:8px;font-weight:700;line-height:1}
+.priority-menu{position:absolute;z-index:30;top:calc(100% + 4px);left:0;min-width:108px;background:#fff;border:1px solid #dce4d3;border-radius:8px;box-shadow:0 10px 30px #243e3318;padding:4px}
+.priority-option{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:7px 8px;border:0;background:transparent;border-radius:6px;color:#344e3c;font-size:12px;cursor:pointer}
+.priority-option.is-selected,.priority-option:hover{background:#eef3e6}
+.priority-option.is-high{color:#3d4f3e;font-weight:600}
+.priority-option.is-high svg{fill:currentColor}
+.priority-option.is-low{color:#8a9480}
+.priority-option.is-low svg{opacity:.55}
+.work-task-row.is-meeting .priority-flag{margin-top:3px}
+@media(max-width:680px){.priority-flag-btn{width:28px;height:28px}}

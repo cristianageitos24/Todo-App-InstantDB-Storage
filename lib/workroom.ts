@@ -17,9 +17,18 @@ const PROJECT_ACCENTS = ['#536945', '#7c5e2f', '#5c617e', '#486968', '#6b5344', 
 export type Alert = { id: string; taskId: string | null; title: string; at: string; read: boolean };
 export type WorkState = { version: 2; tasks: WorkTask[]; notes: WorkNote[]; projects: string[]; alerts: Alert[]; name: string; timer: { taskId: string; remaining: number; endsAt: number | null } | null };
 export const WORK_KEY = 'workroom.workspace.v2';
+export const WORK_NAV_LABELS = ['My work', 'Today', 'Inbox', 'Schedule', 'Priorities', 'Notes', 'Completed', 'Calendar'] as const;
+export const DEFAULT_FOCUS_MINUTES = 25;
 export function localDateTime(offset = 0, hour = 16): string { const date = new Date(); date.setDate(date.getDate() + offset); date.setHours(hour, 0, 0, 0); return toLocalDateTime(date); }
 export function toLocalDateTime(date: Date): string { return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}T${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`; }
-export function emptyTask(title: string, id: string): WorkTask { return { id, title, project: 'General', priority: 'Medium', done: false, dueAt: '', remindAt: '', notifiedAt: '', minutes: 25, body: '', steps: [], noteId: null, createdAt: new Date().toISOString(), completedAt: '', parentId: null, kind: 'task' }; }
+export function emptyTask(title: string, id: string): WorkTask { return { id, title, project: 'General', priority: 'Medium', done: false, dueAt: '', remindAt: '', notifiedAt: '', minutes: 0, body: '', steps: [], noteId: null, createdAt: new Date().toISOString(), completedAt: '', parentId: null, kind: 'task' }; }
+export function focusMinutes(minutes: number): number { return minutes >= 1 && minutes <= 600 ? minutes : DEFAULT_FOCUS_MINUTES; }
+export function createProjectName(name: string, projects: string[], reserved: readonly string[] = WORK_NAV_LABELS): {ok: true; name: string} | {ok: false; error: string} {
+  const trimmed = name.trim().slice(0, 80);
+  if (!trimmed) return {ok: false, error: 'Enter a project name.'};
+  if ([...reserved, ...projects].some(label => label.toLowerCase() === trimmed.toLowerCase())) return {ok: false, error: 'That name is already in use. Choose another.'};
+  return {ok: true, name: trimmed};
+}
 export function seedWorkroom(): WorkState {
   const note: WorkNote = { id: 'sample-note', title: 'Website kickoff · Action items', body: 'Objective\nGet the first version ready for review next week.\n\nDiscussion\nKeep the scope focused. Confirm the content before moving into design. Share one update with clear next steps.\n\nDecisions\n• Start with the homepage and services page.\n• Collect feedback in one place.\n\nFour action items from this meeting are linked below.', createdAt: new Date().toISOString(), datedAt: toLocalDateTime(new Date()).slice(0, 10), sample: true };
   const meeting: WorkTask = {...emptyTask(note.title,'sample-meeting'),kind:'meeting',project:'Website refresh',noteId:note.id,sample:true};
@@ -187,7 +196,7 @@ export function isWorkState(v:unknown):v is WorkState {
   const parentRef=(v:unknown)=>v===undefined||v===null||typeof v==='string';
   if(w.version!==2||typeof w.name!=='string'||!Array.isArray(w.projects)||!w.projects.every(nonempty)||!w.projects.includes('General')||!unique(w.projects)||!Array.isArray(w.tasks)||!Array.isArray(w.notes)||!Array.isArray(w.alerts))return false;
   if(!w.notes.every(n=>n&&nonempty(n.id)&&typeof n.title==='string'&&typeof n.body==='string'&&nonempty(n.createdAt)&&date(n.createdAt)&&(n.datedAt===undefined||dayKey(n.datedAt))&&sample(n.sample))||!unique(w.notes.map(n=>n.id)))return false;
-  if(!w.tasks.every(t=>t&&nonempty(t.id)&&typeof t.title==='string'&&typeof t.body==='string'&&w.projects.includes(t.project)&&['High','Medium','Low'].includes(t.priority)&&typeof t.done==='boolean'&&date(t.dueAt)&&date(t.remindAt)&&date(t.notifiedAt)&&nonempty(t.createdAt)&&date(t.createdAt)&&date(t.completedAt)&&(t.noteId===null||w.notes.some(n=>n.id===t.noteId))&&typeof t.minutes==='number'&&Number.isFinite(t.minutes)&&t.minutes>=1&&t.minutes<=600&&sample(t.sample)&&(t.today===undefined||dayKey(t.today))&&repeat(t.repeat)&&(t.seriesId===undefined||typeof t.seriesId==='string')&&kind(t.kind)&&parentRef(t.parentId)&&Array.isArray(t.steps)&&t.steps.every(s=>s&&nonempty(s.id)&&typeof s.title==='string'&&typeof s.done==='boolean'&&(s.parentId===null||typeof s.parentId==='string'))))return false;
+  if(!w.tasks.every(t=>t&&nonempty(t.id)&&typeof t.title==='string'&&typeof t.body==='string'&&w.projects.includes(t.project)&&['High','Medium','Low'].includes(t.priority)&&typeof t.done==='boolean'&&date(t.dueAt)&&date(t.remindAt)&&date(t.notifiedAt)&&nonempty(t.createdAt)&&date(t.createdAt)&&date(t.completedAt)&&(t.noteId===null||w.notes.some(n=>n.id===t.noteId))&&typeof t.minutes==='number'&&Number.isFinite(t.minutes)&&t.minutes>=0&&t.minutes<=600&&sample(t.sample)&&(t.today===undefined||dayKey(t.today))&&repeat(t.repeat)&&(t.seriesId===undefined||typeof t.seriesId==='string')&&kind(t.kind)&&parentRef(t.parentId)&&Array.isArray(t.steps)&&t.steps.every(s=>s&&nonempty(s.id)&&typeof s.title==='string'&&typeof s.done==='boolean'&&(s.parentId===null||typeof s.parentId==='string'))))return false;
   const tasksById=new Map(w.tasks.map(t=>[t.id,t]));
   for(const t of w.tasks){
     const byId=new Map(t.steps.map(s=>[s.id,s]));
@@ -310,9 +319,16 @@ export function shiftRemindAt(remindAt: string, fromDue: string, toDue: string):
   return rescheduleToDay(remindAt, addCalendarDays(remindDay, delta));
 }
 export function applyDueChange(task: WorkTask, dueAt: string): Partial<WorkTask> {
-  if (!dueAt) return {dueAt: ''};
+  if (!dueAt) return {dueAt: '', remindAt: '', notifiedAt: ''};
   const remindAt = shiftRemindAt(task.remindAt, task.dueAt, dueAt);
   return remindAt === task.remindAt ? {dueAt} : {dueAt, remindAt, notifiedAt: ''};
+}
+export function remindAtFromDue(dueAt: string, minutesBefore: number): string {
+  if (!dueAt) return '';
+  const date = new Date(dueAt);
+  if (!Number.isFinite(date.getTime())) return '';
+  date.setMinutes(date.getMinutes() - minutesBefore);
+  return toLocalDateTime(date);
 }
 export function formatMinutes(minutes: number): string {
   if (minutes <= 0) return '';

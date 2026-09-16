@@ -1,4 +1,4 @@
-import {emptyTask, isWorkState, normalizeWorkState, toLocalDateTime, WorkState, WorkTask, WorkNote} from './workroom';
+import {DEFAULT_FOCUS_MINUTES, emptyTask, isWorkState, normalizeWorkState, toLocalDateTime, WorkState, WorkTask, WorkNote} from './workroom';
 
 export type Row = {id: string; [key: string]: unknown};
 export type CloudRows = {todos?: Row[]; workroomNotes?: Row[]; userProfiles?: Row[]; workroomPreferences?: Row[]};
@@ -17,7 +17,7 @@ export function decodeCloud(rows: CloudRows, device: Pick<WorkState,'alerts'|'ti
   const tasks=(rows.todos||[]).map(row=>{
     const follow=row.followUp as {notes?:string;dateTime?:string}|null;
     const repeat = row.repeat === 'weekly' || row.repeat === 'weekdays' || row.repeat === 'biweekly' || row.repeat === 'monthly' ? row.repeat : '';
-    const minutes=typeof row.minutes==='number'&&Number.isFinite(row.minutes)?Math.min(600,Math.max(1,row.minutes)):25;
+    const minutes=typeof row.minutes==='number'&&Number.isFinite(row.minutes)?Math.min(600,Math.max(0,row.minutes)):DEFAULT_FOCUS_MINUTES;
     const steps=Array.isArray(row.steps)?row.steps.flatMap(raw=>{
       const s=raw as {id?:unknown;title?:unknown;done?:unknown;parentId?:unknown};
       const id=string(s?.id);if(!id)return [];
