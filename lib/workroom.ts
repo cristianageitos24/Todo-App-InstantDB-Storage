@@ -17,7 +17,7 @@ const PROJECT_ACCENTS = ['#536945', '#7c5e2f', '#5c617e', '#486968', '#6b5344', 
 export type Alert = { id: string; taskId: string | null; title: string; at: string; read: boolean };
 export type WorkState = { version: 2; tasks: WorkTask[]; notes: WorkNote[]; projects: string[]; alerts: Alert[]; name: string; timer: { taskId: string; remaining: number; endsAt: number | null } | null };
 export const WORK_KEY = 'workroom.workspace.v2';
-export const WORK_NAV_LABELS = ['My work', 'Today', 'Inbox', 'Schedule', 'Priorities', 'Notes', 'Completed', 'Calendar'] as const;
+export const WORK_NAV_LABELS = ['My tasks', 'Today', 'No date', 'Inbox', 'Upcoming', 'Done', 'Notes', 'Calendar', 'Projects'] as const;
 export const DEFAULT_FOCUS_MINUTES = 25;
 export function localDateTime(offset = 0, hour = 16): string { const date = new Date(); date.setDate(date.getDate() + offset); date.setHours(hour, 0, 0, 0); return toLocalDateTime(date); }
 export function toLocalDateTime(date: Date): string { return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}T${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`; }

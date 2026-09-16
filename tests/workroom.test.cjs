@@ -258,6 +258,9 @@ test('projects can be created in place without colliding with views or existing 
   assert.deepEqual(createProjectName('  Tires  ',['General']),{ok:true,name:'Tires'});
   assert.equal(createProjectName('general',['General']).ok,false);
   assert.equal(createProjectName('Today',['General'],WORK_NAV_LABELS).ok,false);
+  assert.equal(createProjectName('Upcoming',['General'],WORK_NAV_LABELS).ok,false);
+  assert.equal(createProjectName('No date',['General'],WORK_NAV_LABELS).ok,false);
+  assert.equal(createProjectName('Priorities',['General'],WORK_NAV_LABELS).ok,true);
   assert.equal(createProjectName('   ',['General']).ok,false);
 });
 
@@ -337,5 +340,36 @@ test('creating a task from a project view stays on that view',()=>{
   assert.equal(shouldNavigateHomeAfterCreate('Inbox'),false);
   assert.equal(shouldNavigateHomeAfterCreate('My work'),false);
   assert.equal(shouldNavigateHomeAfterCreate('Calendar'),false);
+});
+
+test('places, due-today vs overdue filters, and display grouping stay distinct',()=>{
+  const views=require(join(process.env.WORKROOM_TEST_BUILD,'workroom-views.js'));
+  const today='2026-09-16';
+  const now=Date.parse('2026-09-16T18:00:00');
+  const open={...emptyTask('Open','o'),dueAt:'2026-09-16T20:00',priority:'High'};
+  const overdueToday={...emptyTask('Late today','l'),dueAt:'2026-09-16T09:00',priority:'Medium'};
+  const overduePast={...emptyTask('Yesterday','y'),dueAt:'2026-09-15T16:00'};
+  const inbox={...emptyTask('No date','n')};
+  const done={...emptyTask('Done','d'),done:true,completedAt:'2026-09-16T12:00',dueAt:'2026-09-16T10:00'};
+  const tasks=[open,overdueToday,overduePast,inbox,done];
+  const upcoming=views.itemsForPlace(tasks,{kind:'smart',id:'upcoming'},'',today).map(t=>t.id).sort();
+  assert.deepEqual(upcoming,['d','l','o','y']);
+  assert.equal(views.itemsForPlace(tasks,{kind:'smart',id:'inbox'},'',today).map(t=>t.id).join(),'n');
+  assert.equal(views.matchesFilterChips(overduePast,tasks,['dueToday'],today,now),false);
+  assert.equal(views.matchesFilterChips(overduePast,tasks,['overdue'],today,now),true);
+  assert.equal(views.matchesFilterChips(open,tasks,['dueToday'],today,now),true);
+  assert.equal(views.matchesFilterChips(open,tasks,['overdue'],today,now),false);
+  assert.equal(views.matchesFilterChips(overdueToday,tasks,['dueToday','overdue'],today,now),true);
+  assert.equal(views.effectiveSort({kind:'smart',id:'upcoming'},'newest'),'due');
+  assert.equal(views.effectiveGroupBy({kind:'smart',id:'upcoming'},'none'),'date');
+  assert.equal(views.effectiveGroupBy({kind:'smart',id:'done'},'project'),'none');
+  assert.equal(views.parsePlace('project:Website refresh',['General','Website refresh']).name,'Website refresh');
+  assert.equal(views.parsePlace('Priorities',['General']).id,'tasks');
+  const grouped=views.buildTaskList({tasks,place:{kind:'smart',id:'tasks'},search:'',chips:[],sort:'recommended',groupBy:'none',showCompleted:false,today,now});
+  assert.ok(grouped.openItems.every(t=>!t.done));
+  assert.equal(grouped.completedItems.some(t=>t.id==='d'),true);
+  assert.equal(views.emptyCopy({kind:'project',name:'Website refresh'},'',false).title,'This project is ready.');
+  assert.deepEqual(views.SMART_PLACES.map(place=>place.label),['My tasks','Today','No date','Upcoming','Done']);
+  assert.equal(views.placeTitle({kind:'smart',id:'inbox'}),'No date');
 });
 

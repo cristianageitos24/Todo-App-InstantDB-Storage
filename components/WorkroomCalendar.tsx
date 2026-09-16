@@ -313,7 +313,7 @@ export default function WorkroomCalendar({
               <button type="button" className="wr-text" onClick={() => onReschedule(task.id, selectedDay)}>Due {dayName(selectedDay, 'short')}</button>
             </div>
           ))}
-          <button className="wr-text" onClick={onInbox}>Review in Inbox</button>
+          <button className="wr-text" onClick={onInbox}>Review all with no date</button>
         </section>
       )}
     </div>
