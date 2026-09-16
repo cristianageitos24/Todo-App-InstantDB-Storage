@@ -1,4 +1,4 @@
-import {DEFAULT_FOCUS_MINUTES, emptyTask, isWorkState, normalizeWorkState, toLocalDateTime, WorkState, WorkTask, WorkNote} from './workroom';
+import {asTaskKind, DEFAULT_FOCUS_MINUTES, emptyTask, isBundleTask, isWorkState, normalizeWorkState, toLocalDateTime, WorkState, WorkTask, WorkNote} from './workroom';
 
 export type Row = {id: string; [key: string]: unknown};
 export type CloudRows = {todos?: Row[]; workroomNotes?: Row[]; userProfiles?: Row[]; workroomPreferences?: Row[]};
@@ -27,12 +27,12 @@ export function decodeCloud(rows: CloudRows, device: Pick<WorkState,'alerts'|'ti
       body:string(follow?.notes),dueAt:local(follow?.dateTime),project:string(row.project,'General').trim()||'General',priority:row.priority==='High'||row.priority==='Low'?row.priority:'Medium',
       remindAt:string(row.remindAt),notifiedAt:string(row.notifiedAt),minutes,steps,
       noteId:notes.some(n=>n.id===row.noteId)?row.noteId as string:null,today:dayKey(row.today)||(iso(row.today)?iso(row.today).slice(0,10):''),repeat,seriesId:string(row.seriesId),
-      parentId:typeof row.parentId==='string'&&row.parentId?row.parentId:null,kind:row.kind==='meeting'?'meeting':'task'} as WorkTask;
+      parentId:typeof row.parentId==='string'&&row.parentId?row.parentId:null,kind:asTaskKind(row.kind)} as WorkTask;
   });
   const prefs=rows.workroomPreferences?.[0];
   const projects=Array.from(new Set(['General',...(Array.isArray(prefs?.projects)?prefs.projects.filter(p=>typeof p==='string'&&p.trim()):[]),...tasks.map(t=>t.project)]));
   const decoded: WorkState={version:2,tasks:tasks.sort((a,b)=>b.createdAt.localeCompare(a.createdAt)),notes:notes.sort((a,b)=>b.createdAt.localeCompare(a.createdAt)),projects,name:string(rows.userProfiles?.[0]?.displayName),alerts:device.alerts,timer:null};
-  const repaired=normalizeWorkState({...decoded,timer:device.timer&&decoded.tasks.some(t=>t.id===device.timer?.taskId&&!t.done&&t.kind!=='meeting')?device.timer:null});
+  const repaired=normalizeWorkState({...decoded,timer:device.timer&&decoded.tasks.some(t=>t.id===device.timer?.taskId&&!t.done&&!isBundleTask(t))?device.timer:null});
   if(isWorkState(repaired))return repaired;
   const loosened=normalizeWorkState({...decoded,timer:null,tasks:decoded.tasks.map(t=>({...t,steps:Array.isArray(t.steps)?t.steps.filter(s=>s&&typeof s.id==='string'&&typeof s.title==='string'&&typeof s.done==='boolean'):[]}))});
   if(!isWorkState(loosened))throw new Error('Some cloud records could not be read safely. Your data has not been changed.');
@@ -77,6 +77,6 @@ export function overlayCloud(rows:CloudRows,mutations:Mutation[]):CloudRows {
 export function mergeDevice(cloud:WorkState,device:WorkState,ids:Record<string,string>,id:()=>string):WorkState {
   const mapped=(kind:string,value:string)=>{const existing=kind==='note'?cloud.notes:cloud.tasks;return existing.some(item=>item.id===value)?value:ids[`${kind}:${value}`]||(ids[`${kind}:${value}`]=id());};
   const notes=device.notes.filter(n=>!n.sample).map(n=>({...n,id:mapped('note',n.id)}));
-  const tasks=device.tasks.filter(t=>!t.sample).map(t=>({...t,id:mapped('task',t.id),noteId:t.noteId&&device.notes.some(n=>n.id===t.noteId&&!n.sample)?mapped('note',t.noteId):null,parentId:t.parentId&&device.tasks.some(x=>x.id===t.parentId&&!x.sample)?mapped('task',t.parentId):null,kind:t.kind==='meeting'?'meeting' as const:'task' as const}));
+  const tasks=device.tasks.filter(t=>!t.sample).map(t=>({...t,id:mapped('task',t.id),noteId:t.noteId&&device.notes.some(n=>n.id===t.noteId&&!n.sample)?mapped('note',t.noteId):null,parentId:t.parentId&&device.tasks.some(x=>x.id===t.parentId&&!x.sample)?mapped('task',t.parentId):null,kind:asTaskKind(t.kind)}));
   return {...cloud,notes:[...cloud.notes,...notes.filter(n=>!cloud.notes.some(x=>x.id===n.id))],tasks:[...cloud.tasks,...tasks.filter(t=>!cloud.tasks.some(x=>x.id===t.id))],projects:Array.from(new Set([...cloud.projects,...device.projects])),name:cloud.name||device.name};
 }

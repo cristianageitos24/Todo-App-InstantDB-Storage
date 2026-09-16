@@ -1,7 +1,7 @@
 import {isWorkspace} from './organizer';
 export type Priority = 'High' | 'Medium' | 'Low';
 export type RepeatFreq = 'weekly' | 'weekdays' | 'biweekly' | 'monthly';
-export type TaskKind = 'task' | 'meeting';
+export type TaskKind = 'task' | 'meeting' | 'group';
 export type Step = { id: string; title: string; done: boolean; parentId: string | null };
 export type WorkTask = { id: string; title: string; project: string; priority: Priority; done: boolean; dueAt: string; remindAt: string; notifiedAt: string; minutes: number; body: string; steps: Step[]; noteId: string | null; createdAt: string; completedAt: string; sample?: boolean; today?: string; repeat?: RepeatFreq | ''; seriesId?: string; parentId?: string | null; kind?: TaskKind };
 export type WorkNote = { id: string; title: string; body: string; createdAt: string; datedAt?: string; sample?: boolean };
@@ -64,8 +64,14 @@ export function captureTasks(text:string,options:{project:string;priority:Priori
     else{while(parents.length&&parents[parents.length-1].indent>=line.indent)parents.pop();const step:Step={id:id(),title:line.title,done:false,parentId:parents[Math.min(parents.length,39)-1]?.id||null};result[result.length-1].steps.push(step);parents.push({indent:line.indent,id:step.id});}
   }return result;
 }
-export function isMeetingTask(task: WorkTask): boolean { return (task.kind ?? 'task') === 'meeting'; }
+export function asTaskKind(kind: unknown): TaskKind {
+  return kind === 'meeting' ? 'meeting' : kind === 'group' ? 'group' : 'task';
+}
+export function isMeetingTask(task: WorkTask): boolean { return asTaskKind(task.kind) === 'meeting'; }
+export function isGroupTask(task: WorkTask): boolean { return asTaskKind(task.kind) === 'group'; }
+export function isBundleTask(task: WorkTask): boolean { return isMeetingTask(task) || isGroupTask(task); }
 export function isRootTask(task: WorkTask): boolean { return !task.parentId; }
+export function canGroupTask(task: WorkTask): boolean { return isRootTask(task) && !isBundleTask(task); }
 export function childTasks(tasks: WorkTask[], parentId: string): WorkTask[] { return tasks.filter(t => t.parentId === parentId); }
 export function meetingProgress(tasks: WorkTask[], parentId: string): {done: number; total: number} {
   const children = childTasks(tasks, parentId);
@@ -74,6 +80,9 @@ export function meetingProgress(tasks: WorkTask[], parentId: string): {done: num
 export function isMeetingComplete(tasks: WorkTask[], parentId: string): boolean {
   const children = childTasks(tasks, parentId);
   return children.length > 0 && children.every(t => t.done);
+}
+export function shouldNavigateHomeAfterCreate(_view: string): boolean {
+  return false;
 }
 export function meetingParentForNote(tasks: WorkTask[], noteId: string | null): WorkTask | undefined {
   if (!noteId) return undefined;
@@ -86,14 +95,14 @@ export function earliestChildDue(tasks: WorkTask[], parentId: string): string {
   return childTasks(tasks, parentId).map(t => t.dueAt).filter(Boolean).sort()[0] || '';
 }
 export function rootDueAt(task: WorkTask, tasks: WorkTask[]): string {
-  return task.dueAt || (isMeetingTask(task) ? earliestChildDue(tasks, task.id) : '');
+  return task.dueAt || (isBundleTask(task) ? earliestChildDue(tasks, task.id) : '');
 }
 export function completeTaskPatch(task: WorkTask, done: boolean, at = new Date().toISOString()): Partial<WorkTask> {
   return {done, completedAt: done ? (task.completedAt || at) : '', ...(done ? {steps: task.steps.map(s => ({...s, done: true}))} : {})};
 }
 export function syncMeetingParents(tasks: WorkTask[], at = new Date().toISOString()): WorkTask[] {
   return tasks.map(t => {
-    if (!isMeetingTask(t)) return t;
+    if (!isBundleTask(t)) return t;
     const children = childTasks(tasks, t.id);
     const complete = children.length > 0 && children.every(c => c.done);
     if (complete === t.done) return complete ? t : {...t, completedAt: ''};
@@ -106,6 +115,49 @@ export function applyMeetingCompletion(tasks: WorkTask[], parent: WorkTask, done
     if (t.id === parent.id || ids.has(t.id)) return {...t, ...completeTaskPatch(t, done, at)};
     return t;
   }), at);
+}
+export function groupingProject(tasks: WorkTask[], ids: string[], preferred = ''): string {
+  if (preferred.trim()) return preferred.trim();
+  const members = ids.map(id => tasks.find(t => t.id === id)).filter((t): t is WorkTask => !!t);
+  const projects = Array.from(new Set(members.map(t => t.project)));
+  return projects.length === 1 ? projects[0] : 'General';
+}
+export function selectionSpansProjects(tasks: WorkTask[], ids: string[]): boolean {
+  const members = ids.map(id => tasks.find(t => t.id === id)).filter((t): t is WorkTask => !!t);
+  return new Set(members.map(t => t.project)).size > 1;
+}
+export function groupTasks(state: WorkState, ids: string[], title: string, id: () => string, project = ''): {ok: true; state: WorkState; groupId: string} | {ok: false; error: string} {
+  const groupable = Array.from(new Set(ids)).filter(taskId => {
+    const task = state.tasks.find(t => t.id === taskId);
+    return !!task && canGroupTask(task);
+  });
+  if (groupable.length < 2) return {ok: false, error: 'Select at least two tasks to group.'};
+  const groupProject = groupingProject(state.tasks, groupable, project);
+  const parent: WorkTask = {...emptyTask(title.trim().slice(0, 80) || 'Untitled group', id()), kind: 'group', project: groupProject};
+  const grouped = new Set(groupable);
+  return {ok: true, groupId: parent.id, state: {...state, tasks: syncMeetingParents([parent, ...state.tasks.map(t => grouped.has(t.id) ? {...t, parentId: parent.id, project: groupProject} : t)])}};
+}
+export function ungroupTasks(state: WorkState, groupId: string): WorkState {
+  const parent = state.tasks.find(t => t.id === groupId);
+  if (!parent || !isGroupTask(parent)) return state;
+  return {...state, tasks: syncMeetingParents(state.tasks.filter(t => t.id !== groupId).map(t => t.parentId === groupId ? {...t, parentId: null} : t))};
+}
+export function addBundleChild(state: WorkState, parentId: string, title: string, id: () => string): WorkState {
+  const parent = state.tasks.find(t => t.id === parentId);
+  if (!parent || !isBundleTask(parent)) return state;
+  const task = {...emptyTask(title.trim() || (isMeetingTask(parent) ? 'New action item' : 'New task'), id()), project: parent.project, parentId: parent.id, noteId: parent.noteId};
+  return {...state, tasks: syncMeetingParents([task, ...state.tasks])};
+}
+export function deleteProject(state: WorkState, name: string, fallback = 'General'): {ok: true; state: WorkState; moved: string[]} | {ok: false; error: string} {
+  if (name === 'General' || name === fallback) return {ok: false, error: 'The General project cannot be deleted.'};
+  if (!state.projects.includes(name)) return {ok: false, error: 'That project is not in this workspace.'};
+  const moved = state.tasks.filter(t => t.project === name).map(t => t.id);
+  return {ok: true, moved, state: {...state, projects: state.projects.filter(p => p !== name), tasks: state.tasks.map(t => t.project === name ? {...t, project: fallback} : t)}};
+}
+export function restoreProject(state: WorkState, name: string, taskIds: string[]): WorkState {
+  if (!name || name === 'General') return state;
+  const ids = new Set(taskIds);
+  return {...state, projects: state.projects.includes(name) ? state.projects : [...state.projects, name], tasks: state.tasks.map(t => ids.has(t.id) ? {...t, project: name} : t)};
 }
 export function captureMeeting(text: string, options: {title: string; project: string; priority: Priority; dueAt: string; remindAt: string; noteId: string | null}, id: () => string): WorkTask[] {
   const parent: WorkTask = {...emptyTask(options.title.trim() || 'Untitled meeting', id()), kind: 'meeting', project: options.project, noteId: options.noteId, dueAt: '', remindAt: '', repeat: '', minutes: 25};
@@ -137,7 +189,7 @@ export function bundleNoteTasks(tasks: WorkTask[], notes: WorkNote[], id: (noteI
       if (occupant) next = next.map(t => t.id === parentId ? {...t, kind: 'meeting' as const, parentId: null, noteId: note.id} : t);
     }
     let parent = meetingParentForNote(next, note.id);
-    const orphans = next.filter(t => t.noteId === note.id && !isMeetingTask(t) && !t.parentId);
+    const orphans = next.filter(t => t.noteId === note.id && !isBundleTask(t) && !t.parentId);
     if (!orphans.length) continue;
     if (!parent) {
       const named = orphans.find(t => t.title.trim() === (note.title.trim() || 'Untitled meeting'));
@@ -160,9 +212,12 @@ export function bundleNoteTasks(tasks: WorkTask[], notes: WorkNote[], id: (noteI
 }
 export function normalizeWorkState(state: WorkState, id?: (noteId: string) => string): WorkState {
   const ids = new Set(state.tasks.map(t => t.id));
-  let tasks: WorkTask[] = state.tasks.map(t => ({...t, parentId: t.parentId && ids.has(t.parentId) ? t.parentId : null, kind: t.kind === 'meeting' ? 'meeting' as const : 'task' as const}));
+  let tasks: WorkTask[] = state.tasks.map(t => ({...t, parentId: t.parentId && ids.has(t.parentId) ? t.parentId : null, kind: asTaskKind(t.kind)}));
   const referenced = new Set(tasks.map(t => t.parentId).filter((value): value is string => !!value));
-  tasks = tasks.map(t => referenced.has(t.id) ? {...t, kind: 'meeting' as const, parentId: null} : t);
+  tasks = tasks.map(t => {
+    if (!referenced.has(t.id)) return t;
+    return {...t, kind: asTaskKind(t.kind) === 'group' ? 'group' as const : 'meeting' as const, parentId: null};
+  });
   if (id) tasks = bundleNoteTasks(tasks, state.notes, id);
   return {...state, tasks: syncMeetingParents(tasks)};
 }
@@ -173,12 +228,15 @@ export function matchesSearch(task: WorkTask, tasks: WorkTask[], search: string)
   const query = search.trim().toLowerCase();
   if (!query) return true;
   if (taskSearchText(task).toLowerCase().includes(query)) return true;
-  return isMeetingTask(task) && childTasks(tasks, task.id).some(c => taskSearchText(c).toLowerCase().includes(query));
+  return isBundleTask(task) && childTasks(tasks, task.id).some(c => taskSearchText(c).toLowerCase().includes(query));
+}
+export function bundleProgressLabel(tasks: WorkTask[], parentId: string, empty = 'No action items'): string {
+  const {done, total} = meetingProgress(tasks, parentId);
+  if (!total) return empty;
+  return `${done} of ${total} completed`;
 }
 export function meetingProgressLabel(tasks: WorkTask[], parentId: string): string {
-  const {done, total} = meetingProgress(tasks, parentId);
-  if (!total) return 'No action items';
-  return `${done} of ${total} completed`;
+  return bundleProgressLabel(tasks, parentId, 'No action items');
 }
 export function descendantIds(steps:Step[],id:string):Set<string>{const ids=new Set([id]);let changed=true;while(changed){changed=false;for(const s of steps)if(s.parentId&&ids.has(s.parentId)&&!ids.has(s.id)){ids.add(s.id);changed=true;}}return ids;}
 export function toggleStep(steps:Step[],id:string):Step[]{const step=steps.find(s=>s.id===id);if(!step)return steps;const done=!step.done;const ids=descendantIds(steps,id);let next=steps.map(s=>ids.has(s.id)?{...s,done}:s);if(!done){let parent=step.parentId;const visited=new Set<string>();while(parent&&!visited.has(parent)){visited.add(parent);const p=next.find(s=>s.id===parent);next=next.map(s=>s.id===parent?{...s,done:false}:s);parent=p?.parentId||null;}}return next;}
@@ -192,7 +250,7 @@ export function isWorkState(v:unknown):v is WorkState {
   const sample=(v:unknown)=>v===undefined||typeof v==='boolean';
   const dayKey=(v:unknown)=>typeof v==='string'&&(v===''||(/^\d{4}-\d{2}-\d{2}$/.test(v)&&date(v)));
   const repeat=(v:unknown)=>v===undefined||v===''||(typeof v==='string'&&(REPEAT_FREQS as string[]).includes(v));
-  const kind=(v:unknown)=>v===undefined||v==='task'||v==='meeting';
+  const kind=(v:unknown)=>v===undefined||v==='task'||v==='meeting'||v==='group';
   const parentRef=(v:unknown)=>v===undefined||v===null||typeof v==='string';
   if(w.version!==2||typeof w.name!=='string'||!Array.isArray(w.projects)||!w.projects.every(nonempty)||!w.projects.includes('General')||!unique(w.projects)||!Array.isArray(w.tasks)||!Array.isArray(w.notes)||!Array.isArray(w.alerts))return false;
   if(!w.notes.every(n=>n&&nonempty(n.id)&&typeof n.title==='string'&&typeof n.body==='string'&&nonempty(n.createdAt)&&date(n.createdAt)&&(n.datedAt===undefined||dayKey(n.datedAt))&&sample(n.sample))||!unique(w.notes.map(n=>n.id)))return false;
@@ -203,10 +261,10 @@ export function isWorkState(v:unknown):v is WorkState {
     if(byId.size!==t.steps.length)return false;
     for(const s of t.steps){const seen=new Set([s.id]);let p=s.parentId;while(p!==null){if(seen.has(p)||!byId.has(p)||seen.size>40)return false;seen.add(p);p=byId.get(p)!.parentId;}}
     const pid=t.parentId??null;
-    if((t.kind??'task')==='meeting'&&pid)return false;
-    if(pid){const parent=tasksById.get(pid);if(!parent||(parent.kind??'task')!=='meeting'||parent.parentId)return false;}
+    if(isBundleTask(t)&&pid)return false;
+    if(pid){const parent=tasksById.get(pid);if(!parent||!isBundleTask(parent)||parent.parentId)return false;}
   }
-  return unique(w.tasks.map(t=>t.id))&&w.alerts.every(a=>a&&nonempty(a.id)&&(a.taskId===null||typeof a.taskId==='string')&&typeof a.title==='string'&&nonempty(a.at)&&date(a.at)&&typeof a.read==='boolean')&&unique(w.alerts.map(a=>a.id))&&(w.timer===null||(!!w.timer&&w.tasks.some(t=>t.id===w.timer!.taskId&&!t.done&&(t.kind??'task')!=='meeting')&&typeof w.timer.remaining==='number'&&Number.isFinite(w.timer.remaining)&&w.timer.remaining>=0&&w.timer.remaining<=36000&&(w.timer.endsAt===null||(typeof w.timer.endsAt==='number'&&Number.isFinite(w.timer.endsAt)&&w.timer.endsAt>0))));
+  return unique(w.tasks.map(t=>t.id))&&w.alerts.every(a=>a&&nonempty(a.id)&&(a.taskId===null||typeof a.taskId==='string')&&typeof a.title==='string'&&nonempty(a.at)&&date(a.at)&&typeof a.read==='boolean')&&unique(w.alerts.map(a=>a.id))&&(w.timer===null||(!!w.timer&&w.tasks.some(t=>t.id===w.timer!.taskId&&!t.done&&!isBundleTask(t))&&typeof w.timer.remaining==='number'&&Number.isFinite(w.timer.remaining)&&w.timer.remaining>=0&&w.timer.remaining<=36000&&(w.timer.endsAt===null||(typeof w.timer.endsAt==='number'&&Number.isFinite(w.timer.endsAt)&&w.timer.endsAt>0))));
 }
 
 export function migrateDaylight(value:unknown):WorkState {
@@ -226,8 +284,8 @@ export function matchingNotes(notes: WorkNote[], search: string): WorkNote[] {
   const query = search.trim().toLowerCase();
   return notes.filter(n => `${n.title} ${n.body}`.toLowerCase().includes(query)).sort((a,b) => b.createdAt.localeCompare(a.createdAt));
 }
-export function isTodayTask(task: WorkTask, day: string): boolean { return !task.done && task.today === day && !isMeetingTask(task); }
-export function isTodayEntry(task: WorkTask, day: string): boolean { return task.today === day && !isMeetingTask(task); }
+export function isTodayTask(task: WorkTask, day: string): boolean { return !task.done && task.today === day && !isBundleTask(task); }
+export function isTodayEntry(task: WorkTask, day: string): boolean { return task.today === day && !isBundleTask(task); }
 
 const calendarPriority = {High: 0, Medium: 1, Low: 2};
 export function calendarDay(dueAt: string): string {
@@ -246,16 +304,16 @@ export function sortCalendarTasks(tasks: WorkTask[]): WorkTask[] {
   return [...tasks].sort((a, b) => a.dueAt.localeCompare(b.dueAt) || calendarPriority[a.priority] - calendarPriority[b.priority]);
 }
 export function tasksOnDay(tasks: WorkTask[], day: string, hideCompleted = false): WorkTask[] {
-  return sortCalendarTasks(tasks.filter(t => !isMeetingTask(t) && calendarDay(t.dueAt) === day && (!hideCompleted || !t.done)));
+  return sortCalendarTasks(tasks.filter(t => !isBundleTask(t) && calendarDay(t.dueAt) === day && (!hideCompleted || !t.done)));
 }
 export function overdueOnCalendar(tasks: WorkTask[], now: number): WorkTask[] {
-  return tasks.filter(t => !isMeetingTask(t) && !t.done && !!t.dueAt && new Date(t.dueAt).getTime() < now).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
+  return tasks.filter(t => !isBundleTask(t) && !t.done && !!t.dueAt && new Date(t.dueAt).getTime() < now).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
 }
 export function unscheduledCount(tasks: WorkTask[]): number {
   return unscheduledTasks(tasks).length;
 }
 export function unscheduledTasks(tasks: WorkTask[]): WorkTask[] {
-  return tasks.filter(t => !isMeetingTask(t) && !t.parentId && !t.done && !t.dueAt);
+  return tasks.filter(t => !isBundleTask(t) && !t.parentId && !t.done && !t.dueAt);
 }
 export function monthGrid(year: number, month: number): (string | null)[] {
   const firstWeekday = new Date(year, month, 1).getDay();

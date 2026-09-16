@@ -1,6 +1,6 @@
 'use client';
 import {useState} from 'react';
-import {applyDueChange, calendarDay, descendantIds, isMeetingTask, isRepeatFreq, localDateTime, meetingProgressLabel, Priority, remindAtFromDue, REPEAT_OPTIONS, rescheduleToDay, skipRepeat, toggleStep, WorkNote, WorkTask} from '@/lib/workroom';
+import {applyDueChange, bundleProgressLabel, calendarDay, descendantIds, isBundleTask, isGroupTask, isMeetingTask, isRepeatFreq, localDateTime, Priority, remindAtFromDue, REPEAT_OPTIONS, rescheduleToDay, skipRepeat, toggleStep, WorkNote, WorkTask} from '@/lib/workroom';
 import {Icon} from './WorkUI';
 import ProjectPicker from './ProjectPicker';
 
@@ -23,7 +23,7 @@ function ReminderPresets({dueAt, remindAt, onRemind, onMissingDue}: {dueAt: stri
 }
 
 export default function TaskDetails({
-  task, projects, notes, actions, onChange, onClose, onDelete, onTimer, onNote, onShowCalendar, onToggleAction, onOpenAction, onCreateProject, onAddAction, onNeedDue,
+  task, projects, notes, actions, onChange, onClose, onDelete, onTimer, onNote, onShowCalendar, onToggleAction, onOpenAction, onCreateProject, onAddAction, onUngroup, onNeedDue,
 }: {
   task: WorkTask;
   projects: string[];
@@ -39,6 +39,7 @@ export default function TaskDetails({
   onOpenAction?: (id: string) => void;
   onCreateProject: (name: string) => string | null;
   onAddAction?: (title: string) => void;
+  onUngroup?: () => void;
   onNeedDue?: () => void;
 }) {
   const [stepText, setStepText] = useState('');
@@ -47,9 +48,13 @@ export default function TaskDetails({
   const [editing, setEditing] = useState<string | null>(null);
   const [more, setMore] = useState(() => task.minutes > 0 || !!task.repeat);
   const meeting = isMeetingTask(task);
+  const group = isGroupTask(task);
+  const bundle = isBundleTask(task);
   const items = actions || [];
-  const finished = meeting ? items.filter(step => step.done).length : task.steps.filter(step => step.done).length;
+  const finished = bundle ? items.filter(step => step.done).length : task.steps.filter(step => step.done).length;
   const source = notes.find(note => note.id === task.noteId);
+  const kindLabel = meeting ? 'MEETING' : group ? 'GROUP' : 'TASK DETAILS';
+  const untitled = meeting ? 'Untitled meeting' : group ? 'Untitled group' : 'Untitled task';
 
   const add = () => {
     const lines = stepText.split('\n').map(line => line.trim()).filter(Boolean);
@@ -85,19 +90,19 @@ export default function TaskDetails({
   ));
 
   return (
-    <aside aria-label={meeting ? 'Meeting details' : 'Task details'} className="task-details">
+    <aside aria-label={meeting ? 'Meeting details' : group ? 'Group details' : 'Task details'} className="task-details">
       <div className="detail-top">
-        <span><Icon name={meeting ? 'capture' : 'list'} size={15}/> {meeting ? 'MEETING' : 'TASK DETAILS'}</span>
+        <span><Icon name={meeting ? 'capture' : group ? 'grid' : 'list'} size={15}/> {kindLabel}</span>
         <button className="wr-icon" aria-label="Close task details" onClick={onClose}><Icon name="close" size={16}/></button>
       </div>
       <div className="detail-scroll">
         <div className="detail-badges">
           {task.done && <span className="detail-id">Completed</span>}
         </div>
-        <textarea className="detail-title" aria-label={meeting ? 'Meeting title' : 'Task title'} rows={2} maxLength={300} value={task.title} onChange={event => onChange({title: event.target.value})} onBlur={() => { if (!task.title.trim()) onChange({title: meeting ? 'Untitled meeting' : 'Untitled task'}); }}/>
-        <button className={`complete-action ${task.done ? 'done' : ''}`} onClick={() => onChange({done: !task.done, completedAt: task.done ? '' : new Date().toISOString(), ...(!task.done ? {steps: task.steps.map(step => ({...step, done: true}))} : {})})}>
+        <textarea className="detail-title" aria-label={meeting ? 'Meeting title' : group ? 'Group title' : 'Task title'} rows={2} maxLength={300} value={task.title} onChange={event => onChange({title: event.target.value})} onBlur={() => { if (!task.title.trim()) onChange({title: untitled}); }}/>
+        <button className={`complete-action ${task.done ? 'done' : ''}`} onClick={() => onChange({done: !task.done, completedAt: task.done ? '' : new Date().toISOString(), ...(!task.done && !bundle ? {steps: task.steps.map(step => ({...step, done: true}))} : {})})}>
           <Icon name="check" size={15}/>
-          {task.done ? (meeting ? 'Completed · Reopen meeting' : 'Completed · Reopen task') : meeting ? 'Complete all action items' : 'Mark complete'}
+          {task.done ? (meeting ? 'Completed · Reopen meeting' : group ? 'Completed · Reopen group' : 'Completed · Reopen task') : meeting ? 'Complete all action items' : group ? 'Complete all tasks' : 'Mark complete'}
         </button>
         <div className="detail-fields">
           <label>
@@ -112,7 +117,7 @@ export default function TaskDetails({
               <option>Low</option>
             </select>
           </label>
-          {!meeting && <>
+          {!bundle && <>
             <label>
               <span><Icon name="calendar" size={15}/> Due date</span>
               <input aria-label="Task due date" type="datetime-local" value={task.dueAt} onChange={event => onChange(applyDueChange(task, event.target.value))}/>
@@ -160,11 +165,11 @@ export default function TaskDetails({
             </details>
           </>}
         </div>
-        {!meeting && task.remindAt && (
+        {!bundle && task.remindAt && (
           <p className="reminder-hint"><span className="live-dot"/>{task.notifiedAt ? 'Reminder delivered. Change its time to schedule again.' : 'Reminder scheduled. Keep Workroom open to receive it.'}</p>
         )}
         <div className="detail-section-title"><h3>Context & notes</h3><Icon name="note" size={15}/></div>
-        <textarea className="task-description" aria-label="Task context and notes" placeholder={meeting ? 'Add a short recap for this meeting…' : 'What’s the outcome? Add context, links, or anything you’ll need later…'} rows={3} value={task.body} onChange={event => onChange({body: event.target.value})}/>
+        <textarea className="task-description" aria-label="Task context and notes" placeholder={meeting ? 'Add a short recap for this meeting…' : group ? 'What holds these tasks together?' : 'What’s the outcome? Add context, links, or anything you’ll need later…'} rows={3} value={task.body} onChange={event => onChange({body: event.target.value})}/>
         {source && (
           <button className="source-link" onClick={() => onNote(source.id)}>
             <Icon name="link" size={14}/>
@@ -172,13 +177,13 @@ export default function TaskDetails({
             <Icon name="arrow" size={13}/>
           </button>
         )}
-        {meeting ? <>
+        {bundle ? <>
           <div className="detail-section-title">
-            <h3>Action items <span>{finished}/{items.length}</span></h3>
+            <h3>{meeting ? 'Action items' : 'Tasks'} <span>{finished}/{items.length}</span></h3>
             <span>{items.length ? Math.round(finished / items.length * 100) : 0}%</span>
           </div>
           {items.length > 0 && <div className="steps-progress"><i style={{width: `${items.length ? finished / items.length * 100 : 0}%`}}/></div>}
-          <p className="meeting-progress-copy">{meetingProgressLabel([task, ...items], task.id)}</p>
+          <p className="meeting-progress-copy">{bundleProgressLabel([task, ...items], task.id, meeting ? 'No action items' : 'No tasks')}</p>
           <div className="linked-tasks meeting-actions">
             {items.map(item => (
               <div key={item.id}>
@@ -186,13 +191,14 @@ export default function TaskDetails({
                 <button className={item.done ? 'struck' : ''} onClick={() => onOpenAction?.(item.id)}>{item.title}<Icon name="arrow" size={14}/></button>
               </div>
             ))}
-            {!items.length && <p className="checklist-empty">Break the meeting into action items you can finish.</p>}
+            {!items.length && <p className="checklist-empty">{meeting ? 'Break the meeting into action items you can finish.' : 'Add tasks to this group.'}</p>}
           </div>
           <form className="step-add" onSubmit={event => { event.preventDefault(); if (!actionText.trim()) return; onAddAction?.(actionText); setActionText(''); }}>
             <Icon name="plus" size={15}/>
-            <input aria-label="New action item" value={actionText} onChange={event => setActionText(event.target.value)} placeholder="Add an action item…"/>
-            <button type="submit" aria-label="Save action item">↵</button>
+            <input aria-label={meeting ? 'New action item' : 'New grouped task'} value={actionText} onChange={event => setActionText(event.target.value)} placeholder={meeting ? 'Add an action item…' : 'Add a task…'}/>
+            <button type="submit" aria-label={meeting ? 'Save action item' : 'Save grouped task'}>↵</button>
           </form>
+          {group && onUngroup && <button type="button" className="wr-secondary" onClick={onUngroup}>Ungroup</button>}
         </> : <>
           <div className="detail-section-title">
             <h3>Checklist <span>{finished}/{task.steps.length}</span></h3>
@@ -215,9 +221,9 @@ export default function TaskDetails({
         </>}
       </div>
       <div className="detail-footer">
-        <button className="wr-icon delete-task" aria-label={meeting ? 'Delete meeting' : 'Delete task'} onClick={onDelete}><Icon name="trash" size={17}/></button>
+        <button className="wr-icon delete-task" aria-label={meeting ? 'Delete meeting' : group ? 'Delete group' : 'Delete task'} onClick={onDelete}><Icon name="trash" size={17}/></button>
         <span>Changes save automatically</span>
-        {!meeting && <button className="wr-primary" disabled={task.done} onClick={onTimer}><Icon name="play" size={14}/> Focus</button>}
+        {!bundle && <button className="wr-primary" disabled={task.done} onClick={onTimer}><Icon name="play" size={14}/> Focus</button>}
       </div>
     </aside>
   );

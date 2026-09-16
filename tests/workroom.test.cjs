@@ -1,7 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {join}=require('node:path');
-const {emptyTask,captureTasks,captureMeeting,parseCapture,groupCapturePreview,toggleStep,descendantIds,dueReminders,isWorkState,seedWorkroom,migrateDaylight,normalizeWorkState,childTasks,isMeetingTask,isMeetingComplete,isRootTask,meetingProgress,applyMeetingCompletion,rollRepeatingTask,syncMeetingParents}=require(join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
+const {emptyTask,captureTasks,captureMeeting,parseCapture,groupCapturePreview,toggleStep,descendantIds,dueReminders,isWorkState,seedWorkroom,migrateDaylight,normalizeWorkState,childTasks,isMeetingTask,isMeetingComplete,isRootTask,meetingProgress,applyMeetingCompletion,rollRepeatingTask,syncMeetingParents,groupTasks,ungroupTasks,isGroupTask,bundleProgressLabel,deleteProject,restoreProject,shouldNavigateHomeAfterCreate}=require(join(process.env.WORKROOM_TEST_BUILD,'workroom.js'));
 const {initialWorkspace}=require(join(process.env.WORKROOM_TEST_BUILD,'organizer.js'));
 const options={project:'General',priority:'High',dueAt:'2026-09-14T16:00',remindAt:'2026-09-14T15:00',noteId:null};
 let id=0;const uuid=()=>String(++id);
@@ -282,5 +282,60 @@ test('repeating children keep their meeting parent when they roll',()=>{
   assert.equal(next.parentId,'meet');
   assert.equal(next.kind,'task');
   assert.equal(isMeetingTask(parent),true);
+});
+
+test('tasks can be grouped with progress, then ungrouped',()=>{
+  const blank={version:2,name:'',projects:['General'],alerts:[],timer:null,notes:[],tasks:[emptyTask('A','a'),emptyTask('B','b'),emptyTask('C','c')]};
+  assert.equal(groupTasks(blank,['a'],'Bundle',()=>'g').ok,false);
+  const meeting={...emptyTask('Meet','m'),kind:'meeting'};
+  const child={...emptyTask('Child','ch'),parentId:'m'};
+  assert.equal(groupTasks({...blank,tasks:[...blank.tasks,meeting,child]},['m','a'],'X',()=>'g').ok,false);
+  assert.equal(groupTasks({...blank,tasks:[...blank.tasks,meeting,child]},['a','ch'],'X',()=>'g').ok,false);
+  const grouped=groupTasks(blank,['a','b','c'],'VWC',()=>'g1');
+  assert.equal(grouped.ok,true);
+  assert.equal(grouped.state.tasks.find(t=>t.id==='g1').kind,'group');
+  assert.ok(isGroupTask(grouped.state.tasks.find(t=>t.id==='g1')));
+  assert.ok(grouped.state.tasks.filter(t=>['a','b','c'].includes(t.id)).every(t=>t.parentId==='g1'));
+  assert.deepEqual(meetingProgress(grouped.state.tasks,'g1'),{done:0,total:3});
+  const progressed=syncMeetingParents(grouped.state.tasks.map(t=>t.id==='a'||t.id==='b'?{...t,done:true}:t));
+  assert.equal(bundleProgressLabel(progressed,'g1','No tasks'),'2 of 3 completed');
+  assert.ok(isWorkState(grouped.state));
+  const open=ungroupTasks(grouped.state,'g1');
+  assert.equal(open.tasks.some(t=>t.id==='g1'),false);
+  assert.ok(open.tasks.filter(t=>['a','b','c'].includes(t.id)).every(t=>!t.parentId));
+});
+
+test('normalize and decode keep group kind instead of promoting to meeting',()=>{
+  const parent={...emptyTask('VWC','g'),kind:'group'};
+  const child={...emptyTask('One','a'),parentId:'g'};
+  const state={version:2,name:'',projects:['General'],alerts:[],timer:null,notes:[],tasks:[parent,child]};
+  const restored=normalizeWorkState(state);
+  assert.equal(restored.tasks.find(t=>t.id==='g').kind,'group');
+  const decoded=sync.decodeCloud({todos:[{id:'g',text:'VWC',completed:false,createdDate:'2026-09-01T10:00:00Z',userId:'owner',kind:'group'},{id:'a',text:'One',completed:false,createdDate:'2026-09-01T10:00:00Z',userId:'owner',parentId:'g'}]},{alerts:[],timer:null});
+  assert.equal(decoded.tasks.find(t=>t.id==='g').kind,'group');
+  const created=sync.cloudChanges(sync.blankWorkspace(),state,'user','profile');
+  assert.ok(created.some(m=>m.entity==='todos'&&m.id==='g'&&m.values.kind==='group'));
+});
+
+test('deleteProject reassigns tasks to General and cannot remove General',()=>{
+  const state={version:2,name:'',projects:['General','Client work'],alerts:[],timer:null,notes:[],tasks:[{...emptyTask('A','a'),project:'Client work'},emptyTask('B','b')]};
+  assert.equal(deleteProject(state,'General').ok,false);
+  const gone=deleteProject(state,'Client work');
+  assert.equal(gone.ok,true);
+  assert.equal(gone.state.projects.includes('Client work'),false);
+  assert.equal(gone.state.tasks.find(t=>t.id==='a').project,'General');
+  assert.ok(isWorkState(gone.state));
+  const decoded=sync.decodeCloud({todos:[{id:'a',text:'A',completed:false,createdDate:'2026-09-01T10:00:00Z',userId:'owner',project:'General'},{id:'b',text:'B',completed:false,createdDate:'2026-09-01T10:00:00Z',userId:'owner',project:'General'}],workroomPreferences:[{id:'u',userId:'u',projects:['General']}]},{alerts:[],timer:null});
+  assert.equal(decoded.projects.includes('Client work'),false);
+  const restored=restoreProject(gone.state,'Client work',gone.moved);
+  assert.ok(restored.projects.includes('Client work'));
+  assert.equal(restored.tasks.find(t=>t.id==='a').project,'Client work');
+});
+
+test('creating a task from a project view stays on that view',()=>{
+  assert.equal(shouldNavigateHomeAfterCreate('Website refresh'),false);
+  assert.equal(shouldNavigateHomeAfterCreate('Inbox'),false);
+  assert.equal(shouldNavigateHomeAfterCreate('My work'),false);
+  assert.equal(shouldNavigateHomeAfterCreate('Calendar'),false);
 });
 

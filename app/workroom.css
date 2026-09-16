@@ -210,4 +210,11 @@
 .priority-option.is-low{color:#8a9480}
 .priority-option.is-low svg{opacity:.55}
 .work-task-row.is-meeting .priority-flag{margin-top:3px}
+.group-select-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px;padding:10px 12px;border:1px solid #dbe2d5;border-radius:8px;background:#fff}
+.group-select-bar input,.group-name-input{flex:1;min-width:140px;border:1px solid #dce4d3;border-radius:6px;padding:8px 10px;background:#fafcf7;color:#41563a}
+.group-pick-count{font-size:12px;color:#5b6656}
+.wr-check.group-pick{border-style:dashed}
+.wr-check.group-pick:disabled{opacity:.28;cursor:not-allowed}
+.work-task-row.is-picked{background:#eef3e6}
+.heading-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 @media(max-width:680px){.priority-flag-btn{width:28px;height:28px}}
